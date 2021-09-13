@@ -30,7 +30,7 @@ class NoorPipeline:
         This runs when a new spider starts running. We send this
         to tino, so that we can add a new run.
         """
-        self.file = open(f"spider-{spider.name}.json", "w")
+        #self.file = open(f"spider-{spider.name}.json", "w")
         try:
             requests.post(
                 URL_STATUS,
@@ -49,7 +49,7 @@ class NoorPipeline:
         This runs when a spider finishes its job. We send the status
         to tino to update the Runs table.
         """
-        self.file.close()
+        #self.file.close()
         try:
             requests.post(
                 URL_STATUS,
@@ -89,7 +89,7 @@ class NoorPipeline:
         }
 
         final_json = json.dumps(to_return, ensure_ascii=False, sort_keys=True)
-        self.file.write(final_json)
+        #self.file.write(final_json)
 
         try:
             requests.post(URL_CLEAN, data=final_json.encode("utf-8"), headers={})
