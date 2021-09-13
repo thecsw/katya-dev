@@ -105,6 +105,26 @@ func isUser(name string) (bool, error) {
 	return count != 0, err
 }
 
+func createGlobal() error {
+	return DB.Create(&Global{NumWords: uint(0)}).Error
+}
+
+func doesGlobalExist() bool {
+	count := int64(0)
+	DB.First(&Global{}).Count(&count)
+	return count != 0
+}
+
+func updateGlobal(numWords int) error {
+	obj := &Global{}
+	err := DB.First(obj).Error
+	if err != nil {
+		return err
+	}
+	obj.NumWords += uint(numWords)
+	return DB.Save(obj).Error
+}
+
 func createSource(user, link string) error {
 	userID, err := getUser(user, false)
 	if err != nil {
@@ -138,6 +158,16 @@ func getSource(source string, fill bool) (*Source, error) {
 	}
 	sourceToID.Set(source, sourceObj.ID, cache.NoExpiration)
 	return sourceObj, nil
+}
+
+func updateSource(url string, numWords int) error {
+	// Increase the number of words in the source cell
+	source, err := getSource(url, true)
+	if err != nil {
+		return err
+	}
+	source.NumWords += uint(numWords)
+	return DB.Save(source).Error
 }
 
 func isSource(name string) (bool, error) {

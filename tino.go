@@ -32,7 +32,11 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 		lerr("Failed decoding a noor payload", err, params{})
 		return
 	}
-
+	thisParams := params{
+		"crawler": payload.Name,
+		"url":     payload.URL,
+		"source":  payload.StartURL,
+	}
 	// Check if such a crawler exists
 	crawlerExists, err := isCrawler(payload.Name)
 	if err != nil {
@@ -59,17 +63,22 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 		payload.Text, uint(payload.NumWords),
 	)
 	if err != nil {
-		lerr("Failed adding a new text", err, params{
-			"crawler": payload.Name,
-			"url":     payload.URL,
-			"source":  payload.StartURL,
-		})
+		lerr("Failed adding a new text", err, thisParams)
 		httpJSON(
 			w,
 			nil,
 			http.StatusInternalServerError,
 			errors.Wrap(err, "Failed storing text in the database"),
 		)
+	}
+
+	if err := updateSource(payload.StartURL, payload.NumWords); err != nil {
+		lerr("failed updating source word count", err, thisParams)
+		return
+	}
+	if err := updateGlobal(payload.NumWords); err != nil {
+		lerr("failed updating global word count", err, thisParams)
+		return
 	}
 
 	httpJSON(w, httpMessageReturn{

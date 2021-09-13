@@ -3,8 +3,13 @@ package main
 import (
 	"io/ioutil"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/pterm/pterm"
+	"github.com/rs/cors"
 )
 
 const (
@@ -22,6 +27,17 @@ func main() {
 	// +-------------------------------------+
 	// |                INIT                 |
 	// +-------------------------------------+
+
+	// Print the big banner
+	s, _ := pterm.DefaultBigText.WithLetters(
+		pterm.NewLettersFromStringWithStyle("K", pterm.NewStyle(pterm.FgMagenta)),
+		pterm.NewLettersFromStringWithStyle("atya", pterm.NewStyle(pterm.FgGreen)),
+	).Srender()
+
+	pterm.DefaultCenter.Print(s)
+	pterm.DefaultCenter.
+		WithCenterEachLineSeparately().
+		Println("Katya and friends or The Liberated Corpus")
 
 	// Initialize our log instance
 	linit()
@@ -50,6 +66,9 @@ func main() {
 	// +-------------------------------------+
 	// |             OTHER STUFF             |
 	// +-------------------------------------+
+	if !doesGlobalExist() {
+		createGlobal()
+	}
 
 	l("Creating sandy user")
 	createUser("sandy", "password")
@@ -75,6 +94,27 @@ func main() {
 	// |              BLOCKING               |
 	// +-------------------------------------+
 
-	log.Infof("Listening on %s... ", LISTEN_ADDRESS)
-	log.Fatal(http.ListenAndServe(LISTEN_ADDRESS, myRouter))
+	// Declare and define our HTTP handler
+	handler := cors.Default().Handler(myRouter)
+	srv := &http.Server{
+		Handler: handler,
+		Addr:    LISTEN_ADDRESS,
+		// Good practice: enforce timeouts for servers you create!
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	// Fire up the router
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			log.Println(err)
+		}
+	}()
+	l("Started the API router")
+	// Listen to SIGINT and other shutdown signals
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	l("API is shutting down")
+
 }
