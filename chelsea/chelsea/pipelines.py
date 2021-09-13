@@ -13,44 +13,88 @@ from itemadapter import ItemAdapter
 from bs4 import BeautifulSoup
 from cleantext import clean
 from icecream import ic
+import nltk
 
 # URL to submit processed strings
-URL_CLEAN = "http://127.0.0.1:10000/noor"
-URL_STATUS = "http://127.0.0.1:10000/status"
+URL_BASE = "http://127.0.0.1:10000"
+URL_CLEAN = URL_BASE + "/noor"
+URL_STATUS = URL_BASE + "/status"
 
+# Session for requests
 SESSION = requests.session()
 
 
 class NoorPipeline:
     def open_spider(self, spider):
+        """
+        This runs when a new spider starts running. We send this
+        to tino, so that we can add a new run.
+        """
         self.file = open(f"spider-{spider.name}.json", "w")
-        requests.post(
-            URL_STATUS, data=json.dumps({"status": f"started spider {spider.name}"})
-        )
+        try:
+            requests.post(
+                URL_STATUS,
+                data=json.dumps(
+                    {
+                        "status": "started",
+                        "name": spider.name,
+                    }
+                ),
+            )
+        except Exception as e:
+            print(f"Failed to send started status of {spider.name}:", e)
 
     def close_spider(self, spider):
+        """
+        This runs when a spider finishes its job. We send the status
+        to tino to update the Runs table.
+        """
         self.file.close()
-        requests.post(
-            URL_STATUS, data=json.dumps({"status": f"closed spider {spider.name}"})
-        )
+        try:
+            requests.post(
+                URL_STATUS,
+                data=json.dumps(
+                    {
+                        "status": "finished",
+                        "name": spider.name,
+                    }
+                ),
+            )
+        except Exception as e:
+            print(f"Failed to send finished status of {spider.name}:", e)
 
     def process_item(self, item, spider):
+        """
+        This function is called when a crawler yields results, which is the
+        payload that a crawler sends back to us. We clean the received payload,
+        which is a raw HTML read of the page and send it in a Noor payload straight
+        to Tino.
+
+        TODO: Possibly in the future, it would need to do some automated lexical tagging.
+        """
         text = ItemAdapter(item).get("text")
         clean_text = clean_raw_html(str(text))
+
+        tokens = nltk.word_tokenize(clean_text, language="russian")
+        num_words = len(tokens)
 
         to_return = {
             "text": clean_text,
             "ip": ItemAdapter(item).get("ip"),
             "url": ItemAdapter(item).get("url"),
             "status": ItemAdapter(item).get("status"),
-            "start": ItemAdapter(item).get("start"),
-            "name": ItemAdapter(item).get("name"),
+            "start": spider.start_url,
+            "name": spider.name,
+            "num_words": num_words,
         }
 
         final_json = json.dumps(to_return, ensure_ascii=False, sort_keys=True)
         self.file.write(final_json)
 
-        requests.post(URL_CLEAN, data=final_json.encode("utf-8"), headers={})
+        try:
+            requests.post(URL_CLEAN, data=final_json.encode("utf-8"), headers={})
+        except Exception as e:
+            print("Failed to send a noor payload:", e)
 
         return item
 
@@ -125,6 +169,10 @@ def extract_text(html_page: str) -> List[str]:
 
 
 def clean_text(dirty_text: str) -> str:
+    """
+    Cleans up the text from annoying newlines, tabs, whitespaces, and
+    extra glyphs.
+    """
     # Some hardcoded strings to remove
     for to_remove in TO_REMOVE:
         dirty_text = dirty_text.replace(to_remove, "")
@@ -155,5 +203,8 @@ def clean_text(dirty_text: str) -> str:
 
 
 def clean_raw_html(raw_html: str) -> str:
+    """
+    Automatically cleans a raw html file to extract pure text.
+    """
     text = extract_text(raw_html)
     return clean_text(" ".join(text))

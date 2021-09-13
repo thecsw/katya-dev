@@ -8,15 +8,16 @@ class KatyaSpider(scrapy.Spider):
 
     # allowed_domains = ["sandyuraz.com"]
     # start_urls = ["https://sandyuraz.com/arts"]
-    allowed_domains = ["www.drive2.ru"]
-    start_urls = ["https://www.drive2.ru/communities/14/blog/"]
 
+    allowed_domains = ["ilibrary.ru"]
+    start_urls = ["https://ilibrary.ru/text/1199"]
+    
     link_extractor = LinkExtractor
     start_url = start_urls[0]
 
     def parse(self, response):
         links = self.link_extractor(
-            #allow=self.start_url + ".*", # uncomment if you want to match subpaths only
+            allow=self.start_url + ".*", # uncomment if you want to match subpaths only
             deny="#",  # don't match sections of the same webpage
             restrict_css="a",
             unique=True,
@@ -26,8 +27,6 @@ class KatyaSpider(scrapy.Spider):
         #ic(links)
 
         yield {
-            "name": self.name,
-            "start": self.start_url,
             "url": response.url,
             "ip": response.ip_address.exploded,
             "status": response.status,
