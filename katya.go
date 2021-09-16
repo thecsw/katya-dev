@@ -66,19 +66,18 @@ func main() {
 	// +-------------------------------------+
 	// |             OTHER STUFF             |
 	// +-------------------------------------+
+	l("Checking for the existence of the global element")
 	if !doesGlobalExist() {
+		l("Creating the global element")
 		createGlobal()
 	}
 
 	l("Creating sandy user")
 	createUser("sandy", "password")
-	createSource("sandy", "https://sandyuraz.com")
-	allocateCrawler("sandy", "https://sandyuraz.com")
-	createSource("sandy", "https://ilibrary.ru/text/1199")
-	allocateCrawler("sandy", "https://ilibrary.ru/text/1199")
-
-	// l("Creating a new source")
+	// createSource("sandy", "https://sandyuraz.com")
+	// allocateCrawler("sandy", "https://sandyuraz.com", true)
 	// createSource("sandy", "https://ilibrary.ru/text/1199")
+	// allocateCrawler("sandy", "https://ilibrary.ru/text/1199", true)
 
 	// +-------------------------------------+
 	// |             HTTP Router             |
@@ -89,12 +88,17 @@ func main() {
 	myRouter.HandleFunc("/noor", noorReceiver).Methods(http.MethodPost)
 	myRouter.HandleFunc("/status", statusReceiver).Methods(http.MethodPost)
 	myRouter.HandleFunc("/find", textSearcher).Methods(http.MethodGet)
+	myRouter.HandleFunc("/allocate", crawlerCreator).Methods(http.MethodPost)
+	myRouter.HandleFunc("/trigger", crawlerRunner).Methods(http.MethodPost)
+	myRouter.HandleFunc("/status", crawlerStatusReceiver).Methods(http.MethodGet)
+	myRouter.HandleFunc("/source", userCreateSource).Methods(http.MethodPost)
 
 	// +-------------------------------------+
 	// |              BLOCKING               |
 	// +-------------------------------------+
 
 	// Declare and define our HTTP handler
+	l("Configuring the HTTP router")
 	handler := cors.Default().Handler(myRouter)
 	srv := &http.Server{
 		Handler: handler,
@@ -110,11 +114,13 @@ func main() {
 			log.Println(err)
 		}
 	}()
-	l("Started the API router")
+	l("Started the HTTP router")
+
+	//fmt.Println(triggerCrawler("sandy", "https://sandyuraz.com", os.Stderr))
+	//fmt.Println(triggerCrawler("sandy", "https://ilibrary.ru/text/1199", os.Stderr))
 	// Listen to SIGINT and other shutdown signals
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
 	l("API is shutting down")
-
 }

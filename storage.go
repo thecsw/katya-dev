@@ -52,7 +52,7 @@ func initDB() error {
 	if err != nil {
 		return err
 	}
-	DB.AutoMigrate(&User{}, &Source{}, &Text{}, &Crawler{}, &Global{})
+	DB.AutoMigrate(&User{}, &Source{}, &Crawler{}, &Scrape{}, &Global{}, &Text{})
 	return nil
 }
 
@@ -261,7 +261,21 @@ func finishScrape(crawlerName string) error {
 	}
 	scrape.End = uint(time.Now().Unix())
 	scrape.Elapsed = scrape.End - scrape.Start
-	return DB.Save(scrape).Error
+	err = DB.Save(scrape).Error
+	if err != nil {
+		return err
+	}
+	lf("Successfully finished a scrape", params{"crawler": crawlerName})
+	return nil
+}
+
+func getLastScrape(crawlerName string) (*Scrape, error) {
+	crawler, err := getCrawler(crawlerName, false)
+	if err != nil {
+		return nil, err
+	}
+	result := &Scrape{}
+	return result, DB.Last(result, "crawler_id = ?", crawler.ID).Error
 }
 
 func createText(
@@ -270,7 +284,9 @@ func createText(
 	ip string,
 	status uint,
 	text string,
+	title string,
 	numWords uint,
+	language uint,
 ) error {
 	sourceObj, err := getSource(source, false)
 	if err != nil {
@@ -281,17 +297,18 @@ func createText(
 		IP:       ip,
 		Status:   status,
 		Text:     text,
+		Title:    title,
 		NumWords: numWords,
+		Language: language,
 	}
 	err = DB.Model(sourceObj).Association("Texts").Append(toAdd)
 	if err != nil {
 		return err
 	}
 	lf("Successfully created a new text", params{
-		"url":    url,
-		"ip":     ip,
-		"status": status,
-		//"text":      text[:min(20, len(text))],
+		"url":       url,
+		"title":     title,
+		"ip":        ip,
 		"num_words": numWords,
 	})
 	return nil
@@ -323,4 +340,22 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// reverseString from https://groups.google.com/g/golang-nuts/c/oPuBaYJ17t4
+func reverseString(what string) string {
+	// Get Unicode code points.
+	n := 0
+	rune := make([]rune, len(what))
+	for _, r := range what {
+		rune[n] = r
+		n++
+	}
+	rune = rune[0:n]
+	// Reverse
+	for i := 0; i < n/2; i++ {
+		rune[i], rune[n-1-i] = rune[n-1-i], rune[i]
+	}
+	// Convert back to UTF-8.
+	return string(rune)
 }

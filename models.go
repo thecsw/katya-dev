@@ -63,7 +63,9 @@ type Text struct {
 	IP       string `json:"ip"`
 	Status   uint   `json:"status"`
 	Text     string `json:"text"`
+	Title    string `json:"title"`
 	NumWords uint   `json:"num_words"`
+	Language uint   `json:"language"` // 0: english, 1: russian
 
 	Sources []*Source `gorm:"many2many:source_texts;" json:"-"`
 }

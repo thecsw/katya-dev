@@ -12,7 +12,8 @@ from typing import List
 from itemadapter import ItemAdapter
 from bs4 import BeautifulSoup
 from cleantext import clean
-from icecream import ic
+#from icecream import ic
+import langdetect
 import nltk
 
 # URL to submit processed strings
@@ -30,7 +31,8 @@ class NoorPipeline:
         This runs when a new spider starts running. We send this
         to tino, so that we can add a new run.
         """
-        #self.file = open(f"spider-{spider.name}.json", "w")
+        # self.file = open(f"spider-{spider.name}.json", "w")
+        nltk.download("punkt")
         try:
             requests.post(
                 URL_STATUS,
@@ -49,7 +51,7 @@ class NoorPipeline:
         This runs when a spider finishes its job. We send the status
         to tino to update the Runs table.
         """
-        #self.file.close()
+        # self.file.close()
         try:
             requests.post(
                 URL_STATUS,
@@ -75,21 +77,31 @@ class NoorPipeline:
         text = ItemAdapter(item).get("text")
         clean_text = clean_raw_html(str(text))
 
-        tokens = nltk.word_tokenize(clean_text, language="russian")
+        language = langdetect.detect(text)
+        if language in LANG_SH2LONG:
+            language = LANG_SH2LONG[language]
+        else:
+            language = "russian"
+
+        # TODO: add a sentiment analysis too
+        
+        tokens = nltk.word_tokenize(clean_text, language=language)
         num_words = len(tokens)
 
         to_return = {
             "text": clean_text,
+            "title": ItemAdapter(item).get("title"),
             "ip": ItemAdapter(item).get("ip"),
             "url": ItemAdapter(item).get("url"),
             "status": ItemAdapter(item).get("status"),
             "start": spider.start_url,
             "name": spider.name,
             "num_words": num_words,
+            "lang": language,
         }
 
         final_json = json.dumps(to_return, ensure_ascii=False, sort_keys=True)
-        #self.file.write(final_json)
+        # self.file.write(final_json)
 
         try:
             requests.post(URL_CLEAN, data=final_json.encode("utf-8"), headers={})
@@ -137,6 +149,11 @@ TO_REMOVE = [
     "/noindex",
     "noindex",
 ]
+
+LANG_SH2LONG = {
+    "en": "english",
+    "ru": "russian",
+}
 
 
 def request_html(url: str) -> str:

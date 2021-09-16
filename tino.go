@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,19 @@ const (
 	searchResultWidth = 200
 )
 
+var (
+	langStrToUint = map[string]uint{
+		"english": 0,
+		"russian": 1,
+	}
+
+	langUintToStr = map[uint]string{
+		0:  "english",
+		1:  "russian",
+		99: "unknown",
+	}
+)
+
 type NoorPayload struct {
 	Name     string `json:"name"`
 	StartURL string `json:"start"`
@@ -21,7 +35,9 @@ type NoorPayload struct {
 	IP       string `json:"ip"`
 	Status   int    `json:"status"`
 	Text     string `json:"text"`
+	Title    string `json:"title"`
 	NumWords int    `json:"num_words"`
+	Language string `json:"lang"`
 }
 
 func noorReceiver(w http.ResponseWriter, r *http.Request) {
@@ -54,13 +70,21 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	language := uint(99) // Make 99 the "default" language
+	if l, found := langStrToUint[payload.Language]; found {
+		language = l
+	}
+
 	// Try to add the texts to the database
 	err = createText(
 		payload.StartURL,
 		payload.URL,
 		payload.IP,
 		uint(payload.Status),
-		payload.Text, uint(payload.NumWords),
+		payload.Text,
+		payload.Title,
+		uint(payload.NumWords),
+		language,
 	)
 	if err != nil {
 		lerr("Failed adding a new text", err, thisParams)
@@ -99,15 +123,26 @@ func statusReceiver(w http.ResponseWriter, r *http.Request) {
 		lerr("Failed decoding a received status", err, params{})
 	}
 
-	w.WriteHeader(http.StatusOK)
+	switch payload.Status {
+	case "started":
+		createScrape(payload.Name)
+	case "finished":
+		finishScrape(payload.Name)
+	default:
+		httpJSON(w, nil, http.StatusBadRequest, errors.New("unknown status received"))
+		return
+	}
+	httpJSON(w, httpMessageReturn{"scrape status received"}, http.StatusOK, nil)
 }
 
 type SearchResult struct {
-	Left   string `json:"left"`
-	Center string `json:"center"`
-	Right  string `json:"right"`
-	Source string `json:"source"`
-	URL    string `json:"url"`
+	LeftReverse   string `json:"left_reverse"`
+	Left          string `json:"left"`
+	CenterReverse string `json:"center_reverse"`
+	Center        string `json:"center"`
+	Right         string `json:"right"`
+	Source        string `json:"source"`
+	Language      string `json:"lang"`
 }
 
 func textSearcher(w http.ResponseWriter, r *http.Request) {
@@ -135,20 +170,32 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 		for _, index := range matches {
 			// Make both indices divisible by 2, so we can grab
 			// 2-byte unicode values as well, without slicing
-			leftCrit := max(0, index-searchResultWidth)
+			searchWidth := searchResultWidth
+			// If it's english, then half the number of bytes
+			if v.Language == 0 {
+				searchWidth /= 2
+			}
+
+			leftCrit := max(0, index-searchWidth)
 			leftIndex := strings.IndexRune(v.Text[leftCrit:index], ' ')
 			left := max(leftCrit, leftIndex+leftCrit)
 
-			rightCrit := min(len(v.Text), index+len(query)+searchResultWidth)
+			rightCrit := min(len(v.Text), index+len(query)+searchWidth)
 			rightIndex := strings.IndexRune(v.Text[rightCrit:], ' ')
 			right := max(rightCrit, rightIndex+rightCrit)
 
+			leftText := v.Text[left+1 : index]
+			centerText := v.Text[index : index+len(query)]
+			rightText := v.Text[index+len(query) : right]
+
 			toAppend := SearchResult{
-				Left:   v.Text[left+1 : index],
-				Center: v.Text[index : index+len(query)],
-				Right:  v.Text[index+len(query) : right],
-				Source: v.URL,
-				URL:    v.URL,
+				LeftReverse:   reverseString(leftText),
+				Left:          leftText,
+				CenterReverse: reverseString(centerText),
+				Center:        centerText,
+				Right:         rightText,
+				Source:        v.URL,
+				Language:      langUintToStr[v.Language],
 			}
 			results = append(results, toAppend)
 		}
@@ -159,6 +206,87 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpJSON(w, results, http.StatusOK, nil)
+}
+
+type crawlerActionPayload struct {
+	User         string `json:"user"`
+	Link         string `json:"link"`
+	OnlySubpaths bool   `json:"only_subpaths"`
+}
+
+func crawlerCreator(w http.ResponseWriter, r *http.Request) {
+	payload := &crawlerActionPayload{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(payload)
+	if err != nil {
+		lerr("Failed decoding a crawler creator payload", err, params{})
+		return
+	}
+	thisParams := params{
+		"user": payload.User,
+		"link": payload.Link,
+	}
+	name, err := allocateCrawler(payload.User, payload.Link, payload.OnlySubpaths)
+	if err != nil {
+		lerr("Failed allocating a crawler in creator payload", err, thisParams)
+		httpJSON(w, nil, http.StatusInternalServerError, err)
+		return
+	}
+	httpJSON(w, httpMessageReturn{"created crawler: " + name}, http.StatusOK, nil)
+}
+
+func crawlerRunner(w http.ResponseWriter, r *http.Request) {
+	payload := &crawlerActionPayload{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(payload)
+	if err != nil {
+		lerr("Failed decoding a crawler trigger payload", err, params{})
+		httpJSON(w, nil, http.StatusBadRequest, err)
+		return
+	}
+	thisParams := params{
+		"user": payload.User,
+		"link": payload.Link,
+	}
+	name, err := triggerCrawler(payload.User, payload.Link, os.Stderr)
+	if err != nil {
+		lerr("Failed triggering a crawler in creator payload", err, thisParams)
+		httpJSON(w, nil, http.StatusInternalServerError, err)
+		return
+	}
+	httpJSON(w, httpMessageReturn{"triggered crawler: " + name}, http.StatusOK, nil)
+}
+
+func crawlerStatusReceiver(w http.ResponseWriter, r *http.Request) {
+	crawlerName := r.URL.Query().Get("name")
+	if crawlerName == "" {
+		httpJSON(w, nil, http.StatusBadRequest, errors.New("empty crawler name"))
+		return
+	}
+	val, err := getLastScrape(crawlerName)
+	if err != nil {
+		httpJSON(w, nil, http.StatusInternalServerError, errors.Wrap(err, "getting last scrape"))
+		return
+	}
+	httpJSON(w, *val, http.StatusOK, nil)
+}
+
+func userCreateSource(w http.ResponseWriter, r *http.Request) {
+	payload := &crawlerActionPayload{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(payload)
+	if err != nil {
+		lerr("Failed decoding a create source payload", err, params{})
+		httpJSON(w, nil, http.StatusBadRequest, err)
+		return
+	}
+	err = createSource(payload.User, payload.Link)
+	if err != nil {
+		lerr("Failed creating a source in http", err, params{})
+		httpJSON(w, nil, http.StatusBadRequest, err)
+		return
+	}
+	httpJSON(w, httpMessageReturn{"source created"}, http.StatusOK, nil)
 }
 
 func indexStringMany(s, subs string) []int {
