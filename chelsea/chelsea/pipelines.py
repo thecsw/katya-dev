@@ -76,16 +76,8 @@ class NoorPipeline:
         """
         text = ItemAdapter(item).get("text")
         clean_text = clean_raw_html(str(text))
-
-        language = langdetect.detect(text)
-        if language in LANG_SH2LONG:
-            language = LANG_SH2LONG[language]
-        else:
-            language = "russian"
-
-        # TODO: add a sentiment analysis too
         
-        tokens = nltk.word_tokenize(clean_text, language=language)
+        tokens = nltk.word_tokenize(clean_text, language="russian")
         num_words = len(tokens)
 
         to_return = {
@@ -97,7 +89,6 @@ class NoorPipeline:
             "start": spider.start_url,
             "name": spider.name,
             "num_words": num_words,
-            "lang": language,
         }
 
         final_json = json.dumps(to_return, ensure_ascii=False, sort_keys=True)

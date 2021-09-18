@@ -15,19 +15,6 @@ const (
 	searchResultWidth = 200
 )
 
-var (
-	langStrToUint = map[string]uint{
-		"english": 0,
-		"russian": 1,
-	}
-
-	langUintToStr = map[uint]string{
-		0:  "english",
-		1:  "russian",
-		99: "unknown",
-	}
-)
-
 type NoorPayload struct {
 	Name     string `json:"name"`
 	StartURL string `json:"start"`
@@ -37,7 +24,6 @@ type NoorPayload struct {
 	Text     string `json:"text"`
 	Title    string `json:"title"`
 	NumWords int    `json:"num_words"`
-	Language string `json:"lang"`
 }
 
 func noorReceiver(w http.ResponseWriter, r *http.Request) {
@@ -70,11 +56,6 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	language := uint(99) // Make 99 the "default" language
-	if l, found := langStrToUint[payload.Language]; found {
-		language = l
-	}
-
 	// Try to add the texts to the database
 	err = createText(
 		payload.StartURL,
@@ -84,7 +65,6 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 		payload.Text,
 		payload.Title,
 		uint(payload.NumWords),
-		language,
 	)
 	if err != nil {
 		lerr("Failed adding a new text", err, thisParams)
@@ -142,7 +122,6 @@ type SearchResult struct {
 	Center        string `json:"center"`
 	Right         string `json:"right"`
 	Source        string `json:"source"`
-	Language      string `json:"lang"`
 }
 
 func textSearcher(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +150,7 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 			// Make both indices divisible by 2, so we can grab
 			// 2-byte unicode values as well, without slicing
 			searchWidth := searchResultWidth
-			// If it's english, then half the number of bytes
+			// If it's english, then halve the number of bytes
 			if v.Language == 0 {
 				searchWidth /= 2
 			}
@@ -195,8 +174,8 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 				Center:        centerText,
 				Right:         rightText,
 				Source:        v.URL,
-				Language:      langUintToStr[v.Language],
 			}
+
 			results = append(results, toAppend)
 		}
 	}

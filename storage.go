@@ -286,7 +286,6 @@ func createText(
 	text string,
 	title string,
 	numWords uint,
-	language uint,
 ) error {
 	sourceObj, err := getSource(source, false)
 	if err != nil {
@@ -299,7 +298,6 @@ func createText(
 		Text:     text,
 		Title:    title,
 		NumWords: numWords,
-		Language: language,
 	}
 	err = DB.Model(sourceObj).Association("Texts").Append(toAdd)
 	if err != nil {
