@@ -1,7 +1,8 @@
 package main
 
 import (
-	"io/ioutil"
+	_ "embed"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,12 +16,12 @@ import (
 const (
 	LISTEN_ADDRESS = "0.0.0.0:10000"
 
-	TEMPLATE_CRAWLER = "./chelsea/chelsea/spiders/template.py"
-	CRAWLERS_DIR     = "./chelsea/chelsea/spiders/"
+	CRAWLERS_DIR = "./chelsea/chelsea/spiders/"
 )
 
 var (
-	templateCrawler = ""
+	//go:embed chelsea/chelsea/spiders/template.py
+	templateCrawler string
 )
 
 func main() {
@@ -29,6 +30,7 @@ func main() {
 	// +-------------------------------------+
 
 	// Print the big banner
+	fmt.Println()
 	s, _ := pterm.DefaultBigText.WithLetters(
 		pterm.NewLettersFromStringWithStyle("K", pterm.NewStyle(pterm.FgMagenta)),
 		pterm.NewLettersFromStringWithStyle("atya", pterm.NewStyle(pterm.FgGreen)),
@@ -41,12 +43,6 @@ func main() {
 
 	// Initialize our log instance
 	linit()
-	templateCrawlerTemp, err := ioutil.ReadFile(TEMPLATE_CRAWLER)
-	if err != nil {
-		lerr("Failed opening the template crawler", err, params{})
-		return
-	}
-	templateCrawler = string(templateCrawlerTemp)
 
 	// +-------------------------------------+
 	// |              DATABASE               |
