@@ -14,7 +14,7 @@ import (
 )
 
 func genCrawlerName(user, link string) string {
-	return user + shaEncode(link)[:10]
+	return user + "-" + shaEncode(link)[:10]
 }
 
 func allocateCrawler(user, link string, onlySubpaths bool) (string, error) {
