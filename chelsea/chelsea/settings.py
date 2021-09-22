@@ -23,11 +23,13 @@ ROBOTSTXT_OBEY = False
 #CONCURRENT_REQUESTS = 32
 CONCURRENT_REQUESTS = 1
 
-DOWNLOAD_DELAY = 3
+#DOWNLOAD_DELAY = 3
 
 REACTOR_THREADPOOL_MAXSIZE = 20
 
 RETRY_ENABLED = False
+
+RETRY_HTTP_CODES = [429]
 
 #REDIRECT_ENABLED = False
 REDIRECT_ENABLED = True
@@ -74,9 +76,10 @@ COOKIES_ENABLED = False
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-# DOWNLOADER_MIDDLEWARES = {
-#    'chelsea.middlewares.ChelseaDownloaderMiddleware': 543,
-# }
+DOWNLOADER_MIDDLEWARES = {
+    #'chelsea.middlewares.ChelseaDownloaderMiddleware': 543,
+    'chelsea.middlewares.TooManyRequestsRetryMiddleware': 543,
+}
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html

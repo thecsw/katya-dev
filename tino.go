@@ -5,9 +5,11 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"net/http"
 
+	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 )
 
@@ -15,15 +17,25 @@ const (
 	searchResultWidth = 200
 )
 
+var (
+	globalNumWordsDelta = cache.New(cache.NoExpiration, cache.NoExpiration)
+	globalNumSentsDelta = cache.New(cache.NoExpiration, cache.NoExpiration)
+	globalDeltaCacheKey = "g"
+
+	sourcesNumWordsDelta = cache.New(cache.NoExpiration, cache.NoExpiration)
+	sourcesNumSentsDelta = cache.New(cache.NoExpiration, cache.NoExpiration)
+)
+
 type NoorPayload struct {
-	Name     string `json:"name"`
-	StartURL string `json:"start"`
-	URL      string `json:"url"`
-	IP       string `json:"ip"`
-	Status   int    `json:"status"`
-	Text     string `json:"text"`
-	Title    string `json:"title"`
-	NumWords int    `json:"num_words"`
+	Name         string `json:"name"`
+	StartURL     string `json:"start"`
+	URL          string `json:"url"`
+	IP           string `json:"ip"`
+	Status       int    `json:"status"`
+	Text         string `json:"text"`
+	Title        string `json:"title"`
+	NumWords     int    `json:"num_words"`
+	NumSentences int    `json:"num_sents"`
 }
 
 func noorReceiver(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +77,7 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 		payload.Text,
 		payload.Title,
 		uint(payload.NumWords),
+		uint(payload.NumSentences),
 	)
 	if err != nil {
 		lerr("Failed adding a new text", err, thisParams)
@@ -76,18 +89,77 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 
-	if err := updateSource(payload.StartURL, payload.NumWords); err != nil {
-		lerr("failed updating source word count", err, thisParams)
-		return
-	}
-	if err := updateGlobal(payload.NumWords); err != nil {
-		lerr("failed updating global word count", err, thisParams)
-		return
-	}
+	// Update the word and sent num caches
+	sourcesNumWordsDelta.Add(payload.StartURL, uint(0), cache.NoExpiration)
+	sourcesNumSentsDelta.Add(payload.StartURL, uint(0), cache.NoExpiration)
+
+	sourcesNumWordsDelta.IncrementUint(payload.StartURL, uint(payload.NumWords))
+	sourcesNumSentsDelta.IncrementUint(payload.StartURL, uint(payload.NumSentences))
+
+	globalNumWordsDelta.IncrementUint(globalDeltaCacheKey, uint(payload.NumWords))
+	globalNumSentsDelta.IncrementUint(globalDeltaCacheKey, uint(payload.NumSentences))
 
 	httpJSON(w, httpMessageReturn{
 		Message: "success",
 	}, http.StatusOK, nil)
+}
+
+func updateGlobalWordSentsDeltas() {
+	for {
+		// Sleep for a minute
+		time.Sleep(time.Minute)
+		l("Starting updating the global words/sents count")
+		// Update the word count
+		wordDelta, _ := globalNumWordsDelta.Get(globalDeltaCacheKey)
+		if err := updateGlobalWordNum(wordDelta.(uint)); err != nil {
+			lerr("failed updating global word count", err, params{})
+			continue
+		}
+		// Update the sentences count
+		sentDelta, _ := globalNumSentsDelta.Get(globalDeltaCacheKey)
+		if err := updateGlobalSentNum(sentDelta.(uint)); err != nil {
+			lerr("failed updating global word count", err, params{})
+			continue
+		}
+		// Drain the cache
+		globalNumWordsDelta.Set(globalDeltaCacheKey, uint(0), cache.NoExpiration)
+		globalNumSentsDelta.Set(globalDeltaCacheKey, uint(0), cache.NoExpiration)
+		// Log the info
+		l("Successfully updated the global words/sents count")
+	}
+}
+
+func updateSourcesWordSentsDeltas() {
+	for {
+		// Sleep for a minute
+		time.Sleep(time.Minute)
+		l("Starting to update sources' words/sents count")
+		// Update the word count
+		wordItems := sourcesNumWordsDelta.Items()
+		for k, v := range wordItems {
+			if err := updateSourceWordNum(k, v.Object.(uint)); err != nil {
+				lerr("failed updating source word count", err, params{
+					"source": k,
+				})
+				continue
+			}
+			sourcesNumWordsDelta.Set(k, uint(0), cache.NoExpiration)
+
+		}
+		// Update the sents count
+		sentItems := sourcesNumSentsDelta.Items()
+		for k, v := range sentItems {
+			if err := updateSourceSentNum(k, v.Object.(uint)); err != nil {
+				lerr("failed updating source sent count", err, params{
+					"source": k,
+				})
+				continue
+			}
+			sourcesNumSentsDelta.Set(k, uint(0), cache.NoExpiration)
+		}
+		// Log the info
+		l("Successfully update sources' words/sents count")
+	}
 }
 
 type StatusPayload struct {
@@ -153,10 +225,6 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 			// Make both indices divisible by 2, so we can grab
 			// 2-byte unicode values as well, without slicing
 			searchWidth := searchResultWidth
-			// If it's english, then halve the number of bytes
-			if v.Language == 0 {
-				searchWidth /= 2
-			}
 
 			leftCrit := max(0, index-searchWidth)
 			leftIndex := strings.IndexRune(v.Text[leftCrit:index], ' ')

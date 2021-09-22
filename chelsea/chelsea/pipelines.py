@@ -12,7 +12,8 @@ from typing import List
 from itemadapter import ItemAdapter
 from bs4 import BeautifulSoup
 from cleantext import clean
-#from icecream import ic
+
+# from icecream import ic
 # import langdetect
 import nltk
 
@@ -75,7 +76,7 @@ class NoorPipeline:
         """
         text = ItemAdapter(item).get("text")
         clean_text = clean_raw_html(str(text))
-        
+
         word_tokens = nltk.word_tokenize(clean_text, language="russian")
         num_words = len(word_tokens)
 
@@ -91,6 +92,7 @@ class NoorPipeline:
             "start": spider.start_url,
             "name": spider.name,
             "num_words": num_words,
+            "num_sents": num_sents,
         }
 
         final_json = json.dumps(to_return, ensure_ascii=False, sort_keys=True)
@@ -142,11 +144,6 @@ TO_REMOVE = [
     "/noindex",
     "noindex",
 ]
-
-LANG_SH2LONG = {
-    "en": "english",
-    "ru": "russian",
-}
 
 
 def request_html(url: str) -> str:

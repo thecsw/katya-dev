@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/patrickmn/go-cache"
 	"github.com/pterm/pterm"
 	"github.com/rs/cors"
 )
@@ -67,9 +68,15 @@ func main() {
 		l("Creating the global element")
 		createGlobal()
 	}
+	globalNumWordsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
+	globalNumSentsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 
 	l("Creating sandy user")
 	createUser("sandy", "password")
+
+	go updateGlobalWordSentsDeltas()
+	go updateSourcesWordSentsDeltas()
+
 	// createSource("sandy", "https://sandyuraz.com")
 	// allocateCrawler("sandy", "https://sandyuraz.com", true)
 	// createSource("sandy", "https://ilibrary.ru/text/1199")

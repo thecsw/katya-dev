@@ -8,6 +8,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -115,13 +116,23 @@ func doesGlobalExist() bool {
 	return count != 0
 }
 
-func updateGlobal(numWords int) error {
+func updateGlobalWordNum(numWords uint) error {
 	obj := &Global{}
 	err := DB.First(obj).Error
 	if err != nil {
 		return err
 	}
-	obj.NumWords += uint(numWords)
+	obj.NumWords += numWords
+	return DB.Save(obj).Error
+}
+
+func updateGlobalSentNum(numSents uint) error {
+	obj := &Global{}
+	err := DB.First(obj).Error
+	if err != nil {
+		return err
+	}
+	obj.NumSentences += numSents
 	return DB.Save(obj).Error
 }
 
@@ -160,13 +171,23 @@ func getSource(source string, fill bool) (*Source, error) {
 	return sourceObj, nil
 }
 
-func updateSource(url string, numWords int) error {
+func updateSourceWordNum(url string, numWords uint) error {
 	// Increase the number of words in the source cell
 	source, err := getSource(url, true)
 	if err != nil {
 		return err
 	}
-	source.NumWords += uint(numWords)
+	source.NumWords += numWords
+	return DB.Save(source).Error
+}
+
+func updateSourceSentNum(url string, numSents uint) error {
+	// Increase the number of words in the source cell
+	source, err := getSource(url, true)
+	if err != nil {
+		return err
+	}
+	source.NumSentences += numSents
 	return DB.Save(source).Error
 }
 
@@ -286,6 +307,7 @@ func createText(
 	text string,
 	title string,
 	numWords uint,
+	numSents uint,
 ) error {
 	sourceObj, err := getSource(source, false)
 	if err != nil {
@@ -298,9 +320,24 @@ func createText(
 		Text:     text,
 		Title:    title,
 		NumWords: numWords,
+		NumSents: numSents,
 	}
-	err = DB.Model(sourceObj).Association("Texts").Append(toAdd)
+	err = DB.
+		Model(sourceObj).
+		Clauses(clause.OnConflict{
+			DoNothing: true,
+			UpdateAll: true,
+		}).
+		Association("Texts").
+		Append(toAdd)
 	if err != nil {
+		if strings.Contains(err.Error(), "SQLSTATE 23503") {
+			lf("Text link already exists, not replacing.", params{
+				"url":   url,
+				"title": title,
+			})
+			return nil
+		}
 		return err
 	}
 	lf("Successfully created a new text", params{
@@ -308,6 +345,7 @@ func createText(
 		"title":     title,
 		"ip":        ip,
 		"num_words": numWords,
+		"num_sents": numSents,
 	})
 	return nil
 }

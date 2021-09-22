@@ -18,8 +18,9 @@ type User struct {
 type Source struct {
 	gorm.Model
 
-	Link     string `json:"link" gorm:"unique"`
-	NumWords uint   `json:"num_words"`
+	Link         string `json:"link" gorm:"unique"`
+	NumWords     uint   `json:"num_words"`
+	NumSentences uint   `json:"num_sents"`
 
 	Texts []*Text `gorm:"many2many:source_texts;" json:"-"`
 	Users []*User `gorm:"many2many:user_sources;" json:"-"`
@@ -50,7 +51,8 @@ type Scrape struct {
 type Global struct {
 	gorm.Model
 
-	NumWords uint `json:"num_words"`
+	NumWords     uint `json:"num_words"`
+	NumSentences uint `json:"num_sents"`
 }
 
 // Text struct actually stores the data that we scraped, it's back-linked
@@ -65,7 +67,7 @@ type Text struct {
 	Text     string `json:"text"`
 	Title    string `json:"title"`
 	NumWords uint   `json:"num_words"`
-	Language uint   `json:"language"` // 0: english, 1: russian
+	NumSents uint   `json:"num_sents"`
 
 	Sources []*Source `gorm:"many2many:source_texts;" json:"-"`
 }
