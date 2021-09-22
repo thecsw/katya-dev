@@ -13,7 +13,7 @@ from itemadapter import ItemAdapter
 from bs4 import BeautifulSoup
 from cleantext import clean
 #from icecream import ic
-import langdetect
+# import langdetect
 import nltk
 
 # URL to submit processed strings
@@ -32,7 +32,6 @@ class NoorPipeline:
         to tino, so that we can add a new run.
         """
         # self.file = open(f"spider-{spider.name}.json", "w")
-        nltk.download("punkt")
         try:
             requests.post(
                 URL_STATUS,
@@ -77,8 +76,11 @@ class NoorPipeline:
         text = ItemAdapter(item).get("text")
         clean_text = clean_raw_html(str(text))
         
-        tokens = nltk.word_tokenize(clean_text, language="russian")
-        num_words = len(tokens)
+        word_tokens = nltk.word_tokenize(clean_text, language="russian")
+        num_words = len(word_tokens)
+
+        sent_tokens = nltk.sent_tokenize(clean_text, language="russian")
+        num_sents = len(sent_tokens)
 
         to_return = {
             "text": clean_text,

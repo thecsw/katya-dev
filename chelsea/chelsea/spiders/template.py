@@ -15,7 +15,8 @@ class TemplateSpider(scrapy.Spider):
         links = self.link_extractor(
             # nosubpathallow=self.start_url + ".*", # uncomment if you want to match subpaths only
             deny="#",  # don't match sections of the same webpage
-            restrict_css="a",
+            #restrict_css="a",
+            restrict_xpaths="//a",
             unique=True,
             allow_domains=self.allowed_domains,
         ).extract_links(response)

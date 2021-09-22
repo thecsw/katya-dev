@@ -81,13 +81,15 @@ func main() {
 
 	l("Creating our HTTP router")
 	myRouter := mux.NewRouter()
+
 	myRouter.HandleFunc("/noor", noorReceiver).Methods(http.MethodPost)
-	myRouter.HandleFunc("/status", statusReceiver).Methods(http.MethodPost)
-	myRouter.HandleFunc("/find", textSearcher).Methods(http.MethodGet)
-	myRouter.HandleFunc("/allocate", crawlerCreator).Methods(http.MethodPost)
 	myRouter.HandleFunc("/trigger", crawlerRunner).Methods(http.MethodPost)
-	myRouter.HandleFunc("/status", crawlerStatusReceiver).Methods(http.MethodGet)
+	myRouter.HandleFunc("/status", statusReceiver).Methods(http.MethodPost)
+	myRouter.HandleFunc("/allocate", crawlerCreator).Methods(http.MethodPost)
 	myRouter.HandleFunc("/source", userCreateSource).Methods(http.MethodPost)
+
+	myRouter.HandleFunc("/find", textSearcher).Methods(http.MethodGet)
+	myRouter.HandleFunc("/status", crawlerStatusReceiver).Methods(http.MethodGet)
 
 	// +-------------------------------------+
 	// |              BLOCKING               |

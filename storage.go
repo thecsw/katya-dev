@@ -312,12 +312,23 @@ func createText(
 	return nil
 }
 
-func findTexts(query string, limit int, offset int) ([]Text, error) {
+func findTexts(
+	query string,
+	limit int,
+	offset int,
+	caseSensitive bool,
+) ([]Text, error) {
 	texts := make([]Text, 0, limit)
+	sqlWhere := "text LIKE ?"
+	sqlMatch := "%" + query + "%"
+	if !caseSensitive {
+		sqlWhere = "lower(text) LIKE ?"
+		sqlMatch = "%" + strings.ToLower(query) + "%"
+	}
 	err := DB.
 		Where(
-			"lower(text) LIKE ?",
-			"%"+strings.ToLower(query)+"%",
+			sqlWhere,
+			sqlMatch,
 		).
 		Limit(limit).
 		Offset(offset).

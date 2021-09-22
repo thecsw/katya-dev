@@ -130,13 +130,16 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 		httpJSON(w, nil, http.StatusBadRequest, errors.New("bad query"))
 		return
 	}
+
 	useCSV := r.URL.Query().Get("csv")
 	limitString := r.URL.Query().Get("limit")
+	caseSensitive := r.URL.Query().Get("case_sensitive")
+
 	limit, err := strconv.Atoi(limitString)
 	if err != nil {
 		limit = 100
 	}
-	resultsDB, err := findTexts(query, limit, 0)
+	resultsDB, err := findTexts(query, limit, 0, caseSensitive == "1")
 	if err != nil {
 		httpJSON(w, nil, http.StatusInternalServerError, err)
 		return
@@ -145,7 +148,7 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 	results := make([]SearchResult, 0, len(resultsDB))
 	for _, v := range resultsDB {
 		// Try to find all indices of this substring in the text
-		matches := indexStringMany(v.Text, query)
+		matches := indexStringMany(v.Text, query, caseSensitive == "1")
 		for _, index := range matches {
 			// Make both indices divisible by 2, so we can grab
 			// 2-byte unicode values as well, without slicing
@@ -259,6 +262,10 @@ func userCreateSource(w http.ResponseWriter, r *http.Request) {
 		httpJSON(w, nil, http.StatusBadRequest, err)
 		return
 	}
+	// If our link is ending with a slash, remove it
+	if payload.Link[len(payload.Link)-1] == '/' {
+		payload.Link = payload.Link[:len(payload.Link)-1]
+	}
 	err = createSource(payload.User, payload.Link)
 	if err != nil {
 		lerr("Failed creating a source in http", err, params{})
@@ -268,9 +275,11 @@ func userCreateSource(w http.ResponseWriter, r *http.Request) {
 	httpJSON(w, httpMessageReturn{"source created"}, http.StatusOK, nil)
 }
 
-func indexStringMany(s, subs string) []int {
-	s = strings.ToLower(s)
-	subs = strings.ToLower(subs)
+func indexStringMany(s, subs string, caseSensitive bool) []int {
+	if !caseSensitive {
+		s = strings.ToLower(s)
+		subs = strings.ToLower(subs)
+	}
 	res := make([]int, 0)
 	start := 0
 	for {
