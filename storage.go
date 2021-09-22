@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -336,7 +337,7 @@ func createText(
 				"url":   url,
 				"title": title,
 			})
-			return nil
+			return errors.New("already exists")
 		}
 		return err
 	}

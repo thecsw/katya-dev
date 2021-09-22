@@ -79,7 +79,12 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 		uint(payload.NumWords),
 		uint(payload.NumSentences),
 	)
+
 	if err != nil {
+		if err.Error() == "already exists" {
+			httpJSON(w, httpMessageReturn{Message: "already exists"}, http.StatusOK, nil)
+			return
+		}
 		lerr("Failed adding a new text", err, thisParams)
 		httpJSON(
 			w,
@@ -87,6 +92,7 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError,
 			errors.Wrap(err, "Failed storing text in the database"),
 		)
+		return
 	}
 
 	// Update the word and sent num caches

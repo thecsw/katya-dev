@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"io"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -78,17 +80,31 @@ func triggerCrawler(user, link string, logOutput io.Writer) (string, error) {
 		lerr("this crawler needs to be allocated first", err, thisParams)
 		return "", err
 	}
-	lf("Triggering a crawler", params{
-		"user":  user,
-		"link:": link,
-		"name":  name,
-	})
+	lf("Triggering a crawler", thisParams)
+
 	scrapyCmd := exec.Command("scrapy", "crawl", name)
-	scrapyCmd.Dir = "./chelsea"
-	scrapyCmd.Stdout = logOutput
-	scrapyCmd.Stderr = logOutput
+	scrapyCmd.Dir = SCRAPY_DIR
+
+	logFile, err := os.Create(LOGS_DIR + name + ".log")
+	if err != nil {
+		lerr("Couldn't create a log file for a new scraper. Logs will be lost", err, thisParams)
+		return "", err
+	}
+
+	logWriter := bufio.NewWriter(logFile)
+	scrapyCmd.Stdout = logWriter
+	scrapyCmd.Stderr = logWriter
+
+	// Run the process in the background
+	go func() {
+		scrapyCmd.Run()
+		// close the file
+		logFile.Close()
+	}()
+
+	// Run is blocking, Start is non-blocking
 	//return name, scrapyCmd.Run()
-	return name, scrapyCmd.Start()
+	return name, nil
 }
 
 func writeNewClawer(name, domain, url string, onlySubpaths bool) error {
