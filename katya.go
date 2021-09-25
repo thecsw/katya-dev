@@ -20,6 +20,9 @@ const (
 	CRAWLERS_DIR = "./chelsea/chelsea/spiders/"
 	LOGS_DIR     = "./logs/"
 	SCRAPY_DIR   = "./chelsea/"
+
+	RESTClientCert string = "./certs/cert.pem"
+	RESTClientKey  string = "./certs/privkey.pem"
 )
 
 var (
@@ -137,8 +140,11 @@ func main() {
 	}
 	// Fire up the router
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			log.Println(err)
+		// if err := srv.ListenAndServe(); err != nil {
+		// 	log.Println(err)
+		// }
+		if err := srv.ListenAndServeTLS(RESTClientCert, RESTClientKey); err != nil {
+			lerr("Failed to fire up the router", err, params{})
 		}
 	}()
 	l("Started the HTTP router")
