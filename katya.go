@@ -70,35 +70,42 @@ func main() {
 		l("Creating the global element")
 		createGlobal()
 	}
+	// Create the delta caches
+	l("Creating delta words/sents caches")
 	globalNumWordsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 	globalNumSentsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 
-	l("Creating sandy user")
+	l("Creating default users users")
 	createUser("sandy", "password")
+	createUser("sandy2", "password")
+	createUser("sandy3", "password")
+	createUser("sandy4", "password")
 
+	l("Spinning up the words/sents goroutines")
 	go updateGlobalWordSentsDeltas()
 	go updateSourcesWordSentsDeltas()
-
-	// createSource("sandy", "https://sandyuraz.com")
-	// allocateCrawler("sandy", "https://sandyuraz.com", true)
-	// createSource("sandy", "https://ilibrary.ru/text/1199")
-	// allocateCrawler("sandy", "https://ilibrary.ru/text/1199", true)
 
 	// +-------------------------------------+
 	// |             HTTP Router             |
 	// +-------------------------------------+
 
-	l("Creating our HTTP router")
+	l("Creating our HTTP (API) router")
 	myRouter := mux.NewRouter()
 
-	myRouter.HandleFunc("/noor", noorReceiver).Methods(http.MethodPost)
-	myRouter.HandleFunc("/trigger", crawlerRunner).Methods(http.MethodPost)
-	myRouter.HandleFunc("/status", statusReceiver).Methods(http.MethodPost)
-	myRouter.HandleFunc("/allocate", crawlerCreator).Methods(http.MethodPost)
-	myRouter.HandleFunc("/source", userCreateSource).Methods(http.MethodPost)
+	subRouter := myRouter.PathPrefix("/api").Subrouter()
 
-	myRouter.HandleFunc("/find", textSearcher).Methods(http.MethodGet)
-	myRouter.HandleFunc("/status", crawlerStatusReceiver).Methods(http.MethodGet)
+	subRouter.HandleFunc("/find", textSearcher).Methods(http.MethodGet)
+	subRouter.HandleFunc("/noor", noorReceiver).Methods(http.MethodPost)
+	subRouter.HandleFunc("/trigger", crawlerRunner).Methods(http.MethodPost)
+	subRouter.HandleFunc("/status", statusReceiver).Methods(http.MethodPost)
+	subRouter.HandleFunc("/allocate", crawlerCreator).Methods(http.MethodPost)
+	subRouter.HandleFunc("/sources", userGetSources).Methods(http.MethodGet)
+	subRouter.HandleFunc("/source", userCreateSource).Methods(http.MethodPost)
+	subRouter.HandleFunc("/source", userDeleteSource).Methods(http.MethodDelete)
+	subRouter.HandleFunc("/status", crawlerStatusReceiver).Methods(http.MethodGet)
+
+	l("Enabled the auth portal for the API router")
+	subRouter.Use(loggingMiddleware)
 
 	// +-------------------------------------+
 	// |              BLOCKING               |
@@ -123,8 +130,6 @@ func main() {
 	}()
 	l("Started the HTTP router")
 
-	//fmt.Println(triggerCrawler("sandy", "https://sandyuraz.com", os.Stderr))
-	//fmt.Println(triggerCrawler("sandy", "https://ilibrary.ru/text/1199", os.Stderr))
 	// Listen to SIGINT and other shutdown signals
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)

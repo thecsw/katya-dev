@@ -72,7 +72,16 @@ func closeDB() error {
 }
 
 func createUser(name, pass string) error {
-	err := DB.Create(&User{Name: name, Password: shaEncode(pass)}).Error
+	found, err := isUser(name)
+	if found {
+		lerr("User already exists", err, params{"user": name})
+		return errors.New("User already exists")
+	}
+	if err != nil && err != gorm.ErrRecordNotFound {
+		lerr("Failed to check user existence", err, params{"user": name})
+		return err
+	}
+	err = DB.Create(&User{Name: name, Password: shaEncode(pass)}).Error
 	if err != nil {
 		return err
 	}
@@ -146,12 +155,37 @@ func createSource(user, link string) error {
 		Link:     link,
 		NumWords: 0,
 	}
-	err = DB.Model(userID).Association("Sources").Append(toAdd)
+	source, err := getSource(link, true)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		lerr("Failed to check for source existince", err, params{"user": user, "link": link})
+		return err
+	}
+	if source.ID == 0 {
+		err = DB.Create(toAdd).Error
+		if err != nil {
+			lerr("Failed to create a source", err, params{"user": user, "link": link})
+			return err
+		}
+	}
+	err = DB.Exec("INSERT into user_sources (source_id, user_id) values (?, ?)", source.ID, userID.ID).Error
 	if err != nil {
+		lerr("Failed to append a source", err, params{"user": user, "link": link})
 		return err
 	}
 	lf("Successfully created a new source", params{"user": user, "link": link})
 	return nil
+}
+
+func removeSource(user, link string) error {
+	userID, err := getUser(user, false)
+	if err != nil {
+		return err
+	}
+	source, err := getSource(link, true)
+	if err != nil {
+		return err
+	}
+	return DB.Exec("DELETE FROM user_sources WHERE source_id = ? AND user_id = ?", source.ID, userID.ID).Error
 }
 
 func getSource(source string, fill bool) (*Source, error) {
@@ -170,6 +204,16 @@ func getSource(source string, fill bool) (*Source, error) {
 	}
 	sourceToID.Set(source, sourceObj.ID, cache.NoExpiration)
 	return sourceObj, nil
+}
+
+func getUserSources(user string) ([]Source, error) {
+	sources := make([]Source, 0, 16)
+	err := DB.Model(sources).
+		Joins("JOIN user_sources on sources.id = user_sources.source_id").
+		Joins("JOIN users on user_sources.user_id = users.id AND users.name = ?", user).
+		Find(&sources).
+		Error
+	return sources, err
 }
 
 func updateSourceWordNum(url string, numWords uint) error {
@@ -352,23 +396,25 @@ func createText(
 }
 
 func findTexts(
+	user string,
 	query string,
 	limit int,
 	offset int,
 	caseSensitive bool,
 ) ([]Text, error) {
 	texts := make([]Text, 0, limit)
-	sqlWhere := "text LIKE ?"
+	sqlWhere := "texts.text LIKE ?"
 	sqlMatch := "%" + query + "%"
 	if !caseSensitive {
-		sqlWhere = "lower(text) LIKE ?"
+		sqlWhere = "lower(texts.text) LIKE ?"
 		sqlMatch = "%" + strings.ToLower(query) + "%"
 	}
-	err := DB.
-		Where(
-			sqlWhere,
-			sqlMatch,
-		).
+	err := DB.Model(texts).
+		Joins("JOIN source_texts on texts.id = source_texts.text_id").
+		Joins("JOIN sources on sources.id = source_texts.source_id").
+		Joins("JOIN user_sources on sources.id = user_sources.source_id").
+		Joins("JOIN users on user_sources.user_id = users.id AND users.name = ?", user).
+		Where(sqlWhere, sqlMatch).
 		Limit(limit).
 		Offset(offset).
 		Find(&texts).

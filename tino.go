@@ -117,15 +117,19 @@ func updateGlobalWordSentsDeltas() {
 		l("Starting updating the global words/sents count")
 		// Update the word count
 		wordDelta, _ := globalNumWordsDelta.Get(globalDeltaCacheKey)
-		if err := updateGlobalWordNum(wordDelta.(uint)); err != nil {
-			lerr("failed updating global word count", err, params{})
-			continue
+		if wordDelta != 0 {
+			if err := updateGlobalWordNum(wordDelta.(uint)); err != nil {
+				lerr("failed updating global word count", err, params{})
+				continue
+			}
 		}
 		// Update the sentences count
 		sentDelta, _ := globalNumSentsDelta.Get(globalDeltaCacheKey)
-		if err := updateGlobalSentNum(sentDelta.(uint)); err != nil {
-			lerr("failed updating global word count", err, params{})
-			continue
+		if sentDelta != 0 {
+			if err := updateGlobalSentNum(sentDelta.(uint)); err != nil {
+				lerr("failed updating global word count", err, params{})
+				continue
+			}
 		}
 		// Drain the cache
 		globalNumWordsDelta.Set(globalDeltaCacheKey, uint(0), cache.NoExpiration)
@@ -143,7 +147,11 @@ func updateSourcesWordSentsDeltas() {
 		// Update the word count
 		wordItems := sourcesNumWordsDelta.Items()
 		for k, v := range wordItems {
-			if err := updateSourceWordNum(k, v.Object.(uint)); err != nil {
+			delta := v.Object.(uint)
+			if delta == 0 {
+				continue
+			}
+			if err := updateSourceWordNum(k, delta); err != nil {
 				lerr("failed updating source word count", err, params{
 					"source": k,
 				})
@@ -155,7 +163,11 @@ func updateSourcesWordSentsDeltas() {
 		// Update the sents count
 		sentItems := sourcesNumSentsDelta.Items()
 		for k, v := range sentItems {
-			if err := updateSourceSentNum(k, v.Object.(uint)); err != nil {
+			delta := v.Object.(uint)
+			if delta == 0 {
+				continue
+			}
+			if err := updateSourceSentNum(k, delta); err != nil {
 				lerr("failed updating source sent count", err, params{
 					"source": k,
 				})
@@ -209,6 +221,8 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := r.Context().Value(ContextKey("user")).(User)
+
 	useCSV := r.URL.Query().Get("csv")
 	limitString := r.URL.Query().Get("limit")
 	caseSensitive := r.URL.Query().Get("case_sensitive")
@@ -217,7 +231,7 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		limit = 100
 	}
-	resultsDB, err := findTexts(query, limit, 0, caseSensitive == "1")
+	resultsDB, err := findTexts(user.Name, query, limit, 0, caseSensitive == "1")
 	if err != nil {
 		httpJSON(w, nil, http.StatusInternalServerError, err)
 		return
@@ -265,7 +279,6 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 }
 
 type crawlerActionPayload struct {
-	User         string `json:"user"`
 	Link         string `json:"link"`
 	OnlySubpaths bool   `json:"only_subpaths"`
 }
@@ -278,11 +291,12 @@ func crawlerCreator(w http.ResponseWriter, r *http.Request) {
 		lerr("Failed decoding a crawler creator payload", err, params{})
 		return
 	}
+	user := r.Context().Value(ContextKey("user")).(User)
 	thisParams := params{
-		"user": payload.User,
+		"user": user.Name,
 		"link": payload.Link,
 	}
-	name, err := allocateCrawler(payload.User, payload.Link, payload.OnlySubpaths)
+	name, err := allocateCrawler(user.Name, payload.Link, payload.OnlySubpaths)
 	if err != nil {
 		lerr("Failed allocating a crawler in creator payload", err, thisParams)
 		httpJSON(w, nil, http.StatusInternalServerError, err)
@@ -300,11 +314,12 @@ func crawlerRunner(w http.ResponseWriter, r *http.Request) {
 		httpJSON(w, nil, http.StatusBadRequest, err)
 		return
 	}
+	user := r.Context().Value(ContextKey("user")).(User)
 	thisParams := params{
-		"user": payload.User,
+		"user": user.Name,
 		"link": payload.Link,
 	}
-	name, err := triggerCrawler(payload.User, payload.Link, os.Stderr)
+	name, err := triggerCrawler(user.Name, payload.Link, os.Stderr)
 	if err != nil {
 		lerr("Failed triggering a crawler in creator payload", err, thisParams)
 		httpJSON(w, nil, http.StatusInternalServerError, err)
@@ -327,6 +342,16 @@ func crawlerStatusReceiver(w http.ResponseWriter, r *http.Request) {
 	httpJSON(w, *val, http.StatusOK, nil)
 }
 
+func userGetSources(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value(ContextKey("user")).(User)
+	sources, err := getUserSources(user.Name)
+	if err != nil {
+		httpJSON(w, nil, http.StatusInternalServerError, errors.Wrap(err, "failed to retrieve sources"))
+		return
+	}
+	httpJSON(w, sources, http.StatusOK, nil)
+}
+
 func userCreateSource(w http.ResponseWriter, r *http.Request) {
 	payload := &crawlerActionPayload{}
 	decoder := json.NewDecoder(r.Body)
@@ -336,17 +361,41 @@ func userCreateSource(w http.ResponseWriter, r *http.Request) {
 		httpJSON(w, nil, http.StatusBadRequest, err)
 		return
 	}
+	user := r.Context().Value(ContextKey("user")).(User)
 	// If our link is ending with a slash, remove it
 	if payload.Link[len(payload.Link)-1] == '/' {
 		payload.Link = payload.Link[:len(payload.Link)-1]
 	}
-	err = createSource(payload.User, payload.Link)
+	err = createSource(user.Name, payload.Link)
 	if err != nil {
 		lerr("Failed creating a source in http", err, params{})
 		httpJSON(w, nil, http.StatusBadRequest, err)
 		return
 	}
 	httpJSON(w, httpMessageReturn{"source created"}, http.StatusOK, nil)
+}
+
+func userDeleteSource(w http.ResponseWriter, r *http.Request) {
+	payload := &crawlerActionPayload{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(payload)
+	if err != nil {
+		lerr("Failed decoding a create source payload", err, params{})
+		httpJSON(w, nil, http.StatusBadRequest, errors.Wrap(err, "bad request payload"))
+		return
+	}
+	user := r.Context().Value(ContextKey("user")).(User)
+	// If our link is ending with a slash, remove it
+	if payload.Link[len(payload.Link)-1] == '/' {
+		payload.Link = payload.Link[:len(payload.Link)-1]
+	}
+	err = removeSource(user.Name, payload.Link)
+	if err != nil {
+		lerr("Failed deleting a user source in http", err, params{})
+		httpJSON(w, nil, http.StatusBadRequest, err)
+		return
+	}
+	httpJSON(w, httpMessageReturn{"source deleted"}, http.StatusOK, nil)
 }
 
 func indexStringMany(s, subs string, caseSensitive bool) []int {

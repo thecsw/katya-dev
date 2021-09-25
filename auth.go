@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/csv"
@@ -28,6 +29,8 @@ var (
 		"reverse left", "reverse center", "left", "center", "right", "source",
 	}
 )
+
+type ContextKey string
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +80,8 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			badLoginAttempts.IncrementUint(ipAddr, 1)
 			return
 		}
-		next.ServeHTTP(w, r)
+		newContext := context.WithValue(context.TODO(), ContextKey("user"), *foundUser)
+		next.ServeHTTP(w, r.WithContext(newContext))
 	})
 }
 

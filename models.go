@@ -16,7 +16,7 @@ type User struct {
 // Source struct defines a source website that is given by a user
 // for us to crawl.
 type Source struct {
-	gorm.Model
+	gorm.Model `json:"-"`
 
 	Link         string `json:"link" gorm:"unique"`
 	NumWords     uint   `json:"num_words"`
@@ -29,7 +29,7 @@ type Source struct {
 // Crawler struct defines the crawlers that we have, with the starting
 // link they're using and the user that created this crawler.
 type Crawler struct {
-	gorm.Model
+	gorm.Model `json:"-"`
 
 	Name     string `json:"name" gorm:"unique"`
 	SourceID uint   `json:"source_id"`
@@ -39,7 +39,7 @@ type Crawler struct {
 // Scrape struct stores all the crawlers runs, only associated with a
 // single crawler, it stores the time in UTC unix timestamps.
 type Scrape struct {
-	gorm.Model
+	gorm.Model `json:"-"`
 
 	CrawlerID uint `json:"crawler_id"`
 	Start     uint `json:"start"`
@@ -49,7 +49,7 @@ type Scrape struct {
 
 // Global struct gives us info about the whole corpus.
 type Global struct {
-	gorm.Model
+	gorm.Model `json:"-"`
 
 	NumWords     uint `json:"num_words"`
 	NumSentences uint `json:"num_sents"`
@@ -59,7 +59,7 @@ type Global struct {
 // to sources, such that a source can have multiple texts and a text can have
 // multiple sources (overlapping URLs found during crawling).
 type Text struct {
-	gorm.Model
+	gorm.Model `json:"-"`
 
 	URL      string `json:"url" gorm:"unique"`
 	IP       string `json:"ip"`
