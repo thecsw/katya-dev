@@ -13,31 +13,30 @@ import (
 )
 
 const (
-	HOST        = "127.0.0.1"
+	HOST        = "katya.sandyuraz.com"
 	PORT        = 5432
 	DBNAME      = "sandy"
 	USER        = "sandy"
 	SSLMODE     = "verify-full"
-	SSLCERT     = "./postgres/client.crt"
-	SSLKEY      = "./postgres/client.key"
-	SSLROOTCERT = "./postgres/ca.crt"
-	tempRange   = 60
+	SSLCERT     = "./tools/client/client.crt"
+	SSLKEY      = "./tools/client/client.key"
+	SSLROOTCERT = "./tools/ca/ca.crt"
 )
 
 var (
 	// DB is our global instance of *gorm.DB
 	DB *gorm.DB
 
-	// dsn = fmt.Sprintf(
-	// 	"host=%s port=%d user=%s dbname=%s sslmode=%s sslcert=%s sslkey=%s sslrootcert=%s",
-	// 	HOST, PORT, USER, DBNAME, SSLMODE, SSLCERT, SSLKEY, SSLROOTCERT,
-	// )
-
-	// dsn to connect to Postgres.
 	dsn = fmt.Sprintf(
-		"host=%s port=%d user=%s dbname=%s",
-		HOST, PORT, USER, DBNAME,
+		"host=%s port=%d user=%s dbname=%s sslmode=%s sslcert=%s sslkey=%s sslrootcert=%s",
+		HOST, PORT, USER, DBNAME, SSLMODE, SSLCERT, SSLKEY, SSLROOTCERT,
 	)
+
+	// // dsn to connect to Postgres.
+	// dsn = fmt.Sprintf(
+	// 	"host=%s port=%d user=%s dbname=%s",
+	// 	HOST, PORT, USER, DBNAME,
+	// )
 
 	// Couple of caches that we would use
 	usernameToID = cache.New(cache.NoExpiration, cache.NoExpiration)
