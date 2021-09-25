@@ -39,6 +39,12 @@ type NoorPayload struct {
 }
 
 func noorReceiver(w http.ResponseWriter, r *http.Request) {
+	noorKey := r.Header.Get("Authorization")
+	l(noorKey)
+	if noorKey != "noorkey" {
+		lerr("Bad Authorization header", errors.New("bad key"), params{})
+		return
+	}
 	payload := &NoorPayload{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
@@ -196,6 +202,11 @@ type StatusPayload struct {
 }
 
 func statusReceiver(w http.ResponseWriter, r *http.Request) {
+	noorKey := r.Header.Get("Authorization")
+	if noorKey != "noorkey" {
+		lerr("Bad Authorization header", errors.New("bad key"), params{})
+		return
+	}
 	payload := &StatusPayload{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
@@ -241,7 +252,7 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		limit = 100
 	}
-	resultsDB, err := findTexts(user.Name, query, limit, 0, caseSensitive == "1")
+	resultsDB, err := findTextsByUserID(user.ID, query, limit, 0, caseSensitive == "1")
 	if err != nil {
 		httpJSON(w, nil, http.StatusInternalServerError, err)
 		return

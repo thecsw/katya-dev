@@ -18,7 +18,7 @@ from cleantext import clean
 import nltk
 
 # URL to submit processed strings
-URL_BASE = "http://127.0.0.1:10000"
+URL_BASE = "https://127.0.0.1:32000"
 URL_CLEAN = URL_BASE + "/noor"
 URL_STATUS = URL_BASE + "/status"
 
@@ -99,7 +99,13 @@ class NoorPipeline:
         # self.file.write(final_json)
 
         try:
-            requests.post(URL_CLEAN, data=final_json.encode("utf-8"), headers={})
+            requests.post(URL_CLEAN, data=final_json.encode("utf-8"), headers={
+                "User-Agent": spider.name,
+                "Accept": "*/*",
+                "Connection": "keep-alive",
+                "Content-Type": "application/json",
+                "Authorization": "noorkey"
+            }, verify="cert.pem")
         except Exception as e:
             print("Failed to send a noor payload:", e)
 

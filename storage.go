@@ -125,24 +125,26 @@ func doesGlobalExist() bool {
 	return count != 0
 }
 
+func getNumOfSources() (uint, error) {
+	count := uint(0)
+	return count, DB.
+		Raw("SELECT count(1) FROM sources").
+		Scan(&count).
+		Error
+}
+
 func updateGlobalWordNum(numWords uint) error {
-	obj := &Global{}
-	err := DB.First(obj).Error
-	if err != nil {
-		return err
-	}
-	obj.NumWords += numWords
-	return DB.Save(obj).Error
+	return DB.Exec(
+		"UPDATE globals SET num_words = num_words + ? where id = 1",
+		numWords).
+		Error
 }
 
 func updateGlobalSentNum(numSents uint) error {
-	obj := &Global{}
-	err := DB.First(obj).Error
-	if err != nil {
-		return err
-	}
-	obj.NumSentences += numSents
-	return DB.Save(obj).Error
+	return DB.Exec(
+		"UPDATE globals SET num_sentences = num_sentences + ? where id = 1",
+		numSents).
+		Error
 }
 
 func createSource(user, link string) error {
@@ -166,7 +168,7 @@ func createSource(user, link string) error {
 			return err
 		}
 	}
-	err = DB.Exec("INSERT into user_sources (source_id, user_id) values (?, ?)", source.ID, userID.ID).Error
+	err = DB.Exec("INSERT into user_sources (source_id, user_id) values (?, ?)", toAdd.ID, userID.ID).Error
 	if err != nil {
 		lerr("Failed to append a source", err, params{"user": user, "link": link})
 		return err
@@ -197,9 +199,9 @@ func getSource(source string, fill bool) (*Source, error) {
 		}
 		return sourceObj, DB.First(sourceObj, ID.(uint)).Error
 	}
-	err := DB.First(sourceObj, "link = ?", source).Error
+	err := DB.Where("link = ?", source).First(sourceObj).Error
 	if err != nil {
-		return nil, err
+		return sourceObj, err
 	}
 	sourceToID.Set(source, sourceObj.ID, cache.NoExpiration)
 	return sourceObj, nil
@@ -216,23 +218,17 @@ func getUserSources(user string) ([]Source, error) {
 }
 
 func updateSourceWordNum(url string, numWords uint) error {
-	// Increase the number of words in the source cell
-	source, err := getSource(url, true)
-	if err != nil {
-		return err
-	}
-	source.NumWords += numWords
-	return DB.Save(source).Error
+	return DB.Exec(
+		"UPDATE sources SET num_words = num_words + ? WHERE link = ?",
+		numWords, url).
+		Error
 }
 
 func updateSourceSentNum(url string, numSents uint) error {
-	// Increase the number of words in the source cell
-	source, err := getSource(url, true)
-	if err != nil {
-		return err
-	}
-	source.NumSentences += numSents
-	return DB.Save(source).Error
+	return DB.Exec(
+		"UPDATE sources SET num_sentences = num_sentences + ? WHERE link = ?",
+		numSents, url).
+		Error
 }
 
 func isSource(name string) (bool, error) {
@@ -413,6 +409,33 @@ func findTexts(
 		Joins("JOIN sources on sources.id = source_texts.source_id").
 		Joins("JOIN user_sources on sources.id = user_sources.source_id").
 		Joins("JOIN users on user_sources.user_id = users.id AND users.name = ?", user).
+		Where(sqlWhere, sqlMatch).
+		Limit(limit).
+		Offset(offset).
+		Find(&texts).
+		Error
+	return texts, err
+}
+
+func findTextsByUserID(
+	userID uint,
+	query string,
+	limit int,
+	offset int,
+	caseSensitive bool,
+) ([]Text, error) {
+	texts := make([]Text, 0, limit)
+	sqlWhere := "texts.text LIKE ?"
+	sqlMatch := "%" + query + "%"
+	if !caseSensitive {
+		sqlWhere = "lower(texts.text) LIKE ?"
+		sqlMatch = "%" + strings.ToLower(query) + "%"
+	}
+	err := DB.Model(texts).
+		Joins("JOIN source_texts on texts.id = source_texts.text_id").
+		Joins("JOIN sources on sources.id = source_texts.source_id").
+		Joins("JOIN user_sources on sources.id = user_sources.source_id").
+		Joins("JOIN users on user_sources.user_id = ?", userID).
 		Where(sqlWhere, sqlMatch).
 		Limit(limit).
 		Offset(offset).
