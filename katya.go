@@ -94,12 +94,13 @@ func main() {
 
 	subRouter := myRouter.PathPrefix("/api").Subrouter()
 
+	subRouter.HandleFunc("/auth", verifyAuth).Methods(http.MethodPost)
 	subRouter.HandleFunc("/find", textSearcher).Methods(http.MethodGet)
 	subRouter.HandleFunc("/noor", noorReceiver).Methods(http.MethodPost)
 	subRouter.HandleFunc("/trigger", crawlerRunner).Methods(http.MethodPost)
 	subRouter.HandleFunc("/status", statusReceiver).Methods(http.MethodPost)
-	subRouter.HandleFunc("/allocate", crawlerCreator).Methods(http.MethodPost)
 	subRouter.HandleFunc("/sources", userGetSources).Methods(http.MethodGet)
+	subRouter.HandleFunc("/allocate", crawlerCreator).Methods(http.MethodPost)
 	subRouter.HandleFunc("/source", userCreateSource).Methods(http.MethodPost)
 	subRouter.HandleFunc("/source", userDeleteSource).Methods(http.MethodDelete)
 	subRouter.HandleFunc("/status", crawlerStatusReceiver).Methods(http.MethodGet)

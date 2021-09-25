@@ -114,7 +114,8 @@ func updateGlobalWordSentsDeltas() {
 	for {
 		// Sleep for a minute
 		time.Sleep(time.Minute)
-		l("Starting updating the global words/sents count")
+		actuallyUpdated := false
+		//l("Starting updating the global words/sents count")
 		// Update the word count
 		wordDelta, _ := globalNumWordsDelta.Get(globalDeltaCacheKey)
 		if wordDelta != 0 {
@@ -122,6 +123,7 @@ func updateGlobalWordSentsDeltas() {
 				lerr("failed updating global word count", err, params{})
 				continue
 			}
+			actuallyUpdated = true
 		}
 		// Update the sentences count
 		sentDelta, _ := globalNumSentsDelta.Get(globalDeltaCacheKey)
@@ -130,12 +132,15 @@ func updateGlobalWordSentsDeltas() {
 				lerr("failed updating global word count", err, params{})
 				continue
 			}
+			actuallyUpdated = true
 		}
 		// Drain the cache
 		globalNumWordsDelta.Set(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 		globalNumSentsDelta.Set(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 		// Log the info
-		l("Successfully updated the global words/sents count")
+		if actuallyUpdated {
+			l("Successfully updated the global words/sents count")
+		}
 	}
 }
 
@@ -143,7 +148,8 @@ func updateSourcesWordSentsDeltas() {
 	for {
 		// Sleep for a minute
 		time.Sleep(time.Minute)
-		l("Starting to update sources' words/sents count")
+		actuallyUpdated := false
+		//l("Starting to update sources' words/sents count")
 		// Update the word count
 		wordItems := sourcesNumWordsDelta.Items()
 		for k, v := range wordItems {
@@ -157,6 +163,7 @@ func updateSourcesWordSentsDeltas() {
 				})
 				continue
 			}
+			actuallyUpdated = true
 			sourcesNumWordsDelta.Set(k, uint(0), cache.NoExpiration)
 
 		}
@@ -173,10 +180,13 @@ func updateSourcesWordSentsDeltas() {
 				})
 				continue
 			}
+			actuallyUpdated = true
 			sourcesNumSentsDelta.Set(k, uint(0), cache.NoExpiration)
 		}
 		// Log the info
-		l("Successfully update sources' words/sents count")
+		if actuallyUpdated {
+			l("Successfully update sources' words/sents count")
+		}
 	}
 }
 
