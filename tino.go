@@ -118,7 +118,7 @@ func updateGlobalWordSentsDeltas() {
 		//l("Starting updating the global words/sents count")
 		// Update the word count
 		wordDelta, _ := globalNumWordsDelta.Get(globalDeltaCacheKey)
-		if wordDelta != 0 {
+		if wordDelta.(uint) != 0 {
 			if err := updateGlobalWordNum(wordDelta.(uint)); err != nil {
 				lerr("failed updating global word count", err, params{})
 				continue
@@ -127,7 +127,7 @@ func updateGlobalWordSentsDeltas() {
 		}
 		// Update the sentences count
 		sentDelta, _ := globalNumSentsDelta.Get(globalDeltaCacheKey)
-		if sentDelta != 0 {
+		if sentDelta.(uint) != 0 {
 			if err := updateGlobalSentNum(sentDelta.(uint)); err != nil {
 				lerr("failed updating global word count", err, params{})
 				continue
