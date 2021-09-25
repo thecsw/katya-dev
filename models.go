@@ -5,7 +5,7 @@ import "gorm.io/gorm"
 // User struct defines the user of the system, a user can have
 // multiple sources associated with a user.
 type User struct {
-	gorm.Model
+	gorm.Model `json:"-"`
 
 	Name     string `json:"name" gorm:"unique"`
 	Password string `json:"-"`
