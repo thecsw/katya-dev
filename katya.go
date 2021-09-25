@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	LISTEN_ADDRESS = "0.0.0.0:10000"
+	LISTEN_ADDRESS = "0.0.0.0:32000"
 
 	CRAWLERS_DIR = "./chelsea/chelsea/spiders/"
 	LOGS_DIR     = "./logs/"
