@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	LISTEN_ADDRESS = "0.0.0.0:32000"
+	LISTEN_ADDRESS = ":32000"
 
 	CRAWLERS_DIR = "./chelsea/chelsea/spiders/"
 	LOGS_DIR     = "./logs/"
@@ -114,7 +114,19 @@ func main() {
 
 	// Declare and define our HTTP handler
 	l("Configuring the HTTP router")
-	handler := cors.Default().Handler(myRouter)
+	corsOptions := cors.New(cors.Options{
+		//AllowedOrigins:   []string{"https://sandyuraz.com"},
+		AllowedOrigins: []string{},
+		AllowedMethods: []string{
+			http.MethodPost,
+			http.MethodGet,
+			http.MethodDelete,
+		},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+		Debug:            false,
+	})
+	handler := corsOptions.Handler(myRouter)
 	srv := &http.Server{
 		Handler: handler,
 		Addr:    LISTEN_ADDRESS,
