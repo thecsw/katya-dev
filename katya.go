@@ -78,11 +78,10 @@ func main() {
 	globalNumWordsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 	globalNumSentsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 
-	l("Creating default users users")
-	createUser("sandy", "password")
-	createUser("sandy2", "password")
-	createUser("sandy3", "password")
-	createUser("sandy4", "password")
+	l("Creating default users")
+	createUser("sandy", "urazayev")
+	createUser("kate", "crnkovich")
+	createUser("stephen", "dickey")
 
 	l("Spinning up the words/sents goroutines")
 	go updateGlobalWordSentsDeltas()
@@ -95,6 +94,7 @@ func main() {
 	l("Creating our HTTP (API) router")
 	myRouter := mux.NewRouter()
 
+	myRouter.HandleFunc("/", helloReceiver).Methods(http.MethodGet)
 	myRouter.HandleFunc("/noor", noorReceiver).Methods(http.MethodPost)
 	myRouter.HandleFunc("/status", statusReceiver).Methods(http.MethodPost)
 
@@ -149,6 +149,23 @@ func main() {
 		}
 	}()
 	l("Started the HTTP router")
+
+	// OLD SERVER
+	// handler := cors.Default().Handler(myRouter)
+	// srv := &http.Server{
+	// 	Handler: handler,
+	// 	Addr:    LISTEN_ADDRESS,
+	// 	// Good practice: enforce timeouts for servers you create!
+	// 	WriteTimeout: 15 * time.Second,
+	// 	ReadTimeout:  15 * time.Second,
+	// 	IdleTimeout:  60 * time.Second,
+	// }
+	// // Fire up the router
+	// go func() {
+	// 	if err := srv.ListenAndServe(); err != nil {
+	// 		log.Println(err)
+	// 	}
+	// }()
 
 	// Listen to SIGINT and other shutdown signals
 	c := make(chan os.Signal, 1)

@@ -419,6 +419,10 @@ func userDeleteSource(w http.ResponseWriter, r *http.Request) {
 	httpJSON(w, httpMessageReturn{"source deleted"}, http.StatusOK, nil)
 }
 
+func helloReceiver(w http.ResponseWriter, r *http.Request) {
+	httpJSON(w, httpMessageReturn{"hello, world"}, http.StatusOK, nil)
+}
+
 func indexStringMany(s, subs string, caseSensitive bool) []int {
 	if !caseSensitive {
 		s = strings.ToLower(s)

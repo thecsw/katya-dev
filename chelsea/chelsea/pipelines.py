@@ -23,7 +23,18 @@ URL_CLEAN = URL_BASE + "/noor"
 URL_STATUS = URL_BASE + "/status"
 
 # Session for requests
-SESSION = requests.session()
+s = requests.session()
+s.verify = False
+
+
+def headers(spiderName):
+    return {
+        "User-Agent": spiderName,
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        "Content-Type": "application/json",
+        "Authorization": "noorkey",
+    }
 
 
 class NoorPipeline:
@@ -34,7 +45,7 @@ class NoorPipeline:
         """
         # self.file = open(f"spider-{spider.name}.json", "w")
         try:
-            requests.post(
+            s.post(
                 URL_STATUS,
                 data=json.dumps(
                     {
@@ -42,6 +53,7 @@ class NoorPipeline:
                         "name": spider.name,
                     }
                 ),
+                headers=headers(spider.name),
             )
         except Exception as e:
             print(f"Failed to send started status of {spider.name}:", e)
@@ -53,7 +65,7 @@ class NoorPipeline:
         """
         # self.file.close()
         try:
-            requests.post(
+            s.post(
                 URL_STATUS,
                 data=json.dumps(
                     {
@@ -61,6 +73,7 @@ class NoorPipeline:
                         "name": spider.name,
                     }
                 ),
+                headers=headers(spider.name),
             )
         except Exception as e:
             print(f"Failed to send finished status of {spider.name}:", e)
@@ -99,13 +112,9 @@ class NoorPipeline:
         # self.file.write(final_json)
 
         try:
-            requests.post(URL_CLEAN, data=final_json.encode("utf-8"), headers={
-                "User-Agent": spider.name,
-                "Accept": "*/*",
-                "Connection": "keep-alive",
-                "Content-Type": "application/json",
-                "Authorization": "noorkey"
-            }, verify="cert.pem")
+            s.post(
+                URL_CLEAN, data=final_json.encode("utf-8"), headers=headers(spider.name)
+            )
         except Exception as e:
             print("Failed to send a noor payload:", e)
 
@@ -157,7 +166,7 @@ def request_html(url: str) -> str:
     Takes a URL in a string format and returns the HTML
     page in bytes format.
     """
-    return str(requests.get(url).content)
+    return str(s.get(url).content)
 
 
 def extract_text(html_page: str) -> List[str]:
