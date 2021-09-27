@@ -119,16 +119,14 @@ func main() {
 	// Declare and define our HTTP handler
 	l("Configuring the HTTP router")
 	corsOptions := cors.New(cors.Options{
-		//AllowedOrigins:   []string{"https://sandyuraz.com"},
-		AllowedOrigins: []string{},
-		AllowedMethods: []string{
-			http.MethodPost,
-			http.MethodGet,
-			http.MethodDelete,
-		},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
-		AllowCredentials: true,
-		Debug:            false,
+		AllowedOrigins:     []string{"https://sandyuraz.com"},
+		AllowedMethods:     []string{http.MethodPost, http.MethodGet, http.MethodDelete},
+		AllowedHeaders:     []string{"Authorization", "Content-Type", "Access-Control-Allow-Methods"},
+		ExposedHeaders:     []string{},
+		MaxAge:             0,
+		AllowCredentials:   true,
+		OptionsPassthrough: false,
+		Debug:              false,
 	})
 	handler := corsOptions.Handler(myRouter)
 	srv := &http.Server{
