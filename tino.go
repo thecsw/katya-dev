@@ -40,7 +40,6 @@ type NoorPayload struct {
 
 func noorReceiver(w http.ResponseWriter, r *http.Request) {
 	noorKey := r.Header.Get("Authorization")
-	l(noorKey)
 	if noorKey != "noorkey" {
 		lerr("Bad Authorization header", errors.New("bad key"), params{})
 		return

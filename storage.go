@@ -432,10 +432,10 @@ func findTextsByUserID(
 		sqlMatch = "%" + strings.ToLower(query) + "%"
 	}
 	err := DB.Model(texts).
-		Joins("JOIN source_texts on texts.id = source_texts.text_id").
-		Joins("JOIN sources on sources.id = source_texts.source_id").
-		Joins("JOIN user_sources on sources.id = user_sources.source_id").
-		Joins("JOIN users on user_sources.user_id = ?", userID).
+		Joins("INNER JOIN source_texts on texts.id = source_texts.text_id").
+		Joins("INNER JOIN sources on sources.id = source_texts.source_id").
+		Joins("INERR JOIN user_sources on sources.id = user_sources.source_id").
+		Joins("INNER JOIN users on user_sources.user_id = users.id AND users.id = ?", userID).
 		Where(sqlWhere, sqlMatch).
 		Limit(limit).
 		Offset(offset).
