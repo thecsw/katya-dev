@@ -26,7 +26,7 @@ var (
 	passwordRegexp = regexp.MustCompile(`^[^ ]{2,32}$`)
 
 	csvHeader = []string{
-		"reverse left", "reverse center", "left", "center", "right", "source",
+		"reverse left", "reverse center", "left", "center", "right", "source", "title",
 	}
 )
 
@@ -129,7 +129,7 @@ func httpCSV(w http.ResponseWriter, results []SearchResult, status int) {
 	toWrite = append(toWrite, csvHeader)
 	for _, v := range results {
 		toWrite = append(toWrite, []string{
-			v.LeftReverse, v.CenterReverse, v.Left, v.Center, v.Right, v.Source,
+			v.LeftReverse, v.CenterReverse, v.Left, v.Center, v.Right, v.Source, v.Title,
 		})
 	}
 	csv.NewWriter(w).WriteAll(toWrite)

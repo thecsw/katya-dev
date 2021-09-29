@@ -232,6 +232,7 @@ type SearchResult struct {
 	Center        string `json:"center"`
 	Right         string `json:"right"`
 	Source        string `json:"source"`
+	Title         string `json:"title"`
 }
 
 func textSearcher(w http.ResponseWriter, r *http.Request) {
@@ -262,6 +263,9 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 		// Try to find all indices of this substring in the text
 		matches := indexStringMany(v.Text, query, caseSensitive == "1")
 		for _, index := range matches {
+			if index == 0 {
+				continue
+			}
 			// Make both indices divisible by 2, so we can grab
 			// 2-byte unicode values as well, without slicing
 			searchWidth := searchResultWidth
@@ -285,6 +289,7 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 				Center:        centerText,
 				Right:         rightText,
 				Source:        v.URL,
+				Title:         v.Title,
 			}
 
 			results = append(results, toAppend)
