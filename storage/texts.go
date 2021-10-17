@@ -1,11 +1,16 @@
 package storage
 
 import (
-	"errors"
 	"strings"
 
+	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/thecsw/katya/log"
-	"gorm.io/gorm/clause"
+	"gorm.io/gorm"
+)
+
+const (
+	duplicateKeyViolatedError = "duplicate key value violates unique constraint"
 )
 
 // CreateText creates a full text that we receive with Noor
@@ -23,50 +28,98 @@ func CreateText(
 	numWords uint,
 	numSents uint,
 ) error {
+	textFound, err := GetText(url, false)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log.Error("failed the text existence check", err, log.Params{"url": url})
+		return errors.Wrap(err, "failed the text existence check")
+	}
+	// If there is no text existing with the URL, then make one
+	var toAdd *Text
+	alreadyExisted := textFound.ID != 0
+	if !alreadyExisted {
+		toAdd = &Text{
+			URL:         url,
+			IP:          ip,
+			Status:      status,
+			Original:    original,
+			Text:        text,
+			Shapes:      shapes,
+			Tags:        tags,
+			Nominatives: nomins,
+			Title:       title,
+			NumWords:    numWords,
+			NumSents:    numSents,
+			Sources:     []*Source{},
+		}
+		err = DB.Create(toAdd).Error
+		if err != nil {
+			log.Error("failed to create a new text", err, log.Params{"url": url})
+			return errors.Wrap(err, "failed to create a new text")
+		}
+		textFound.ID = toAdd.ID
+	}
+	// Try to link the source to the text, which already exist or was just created
 	sourceObj, err := GetSource(source, false)
 	if err != nil {
-		return err
+		log.Error("failed source retrieval in text creation", err, log.Params{"source": source})
+		return errors.Wrap(err, "failed source retrieval in text creation")
 	}
-	toAdd := &Text{
-		URL:         url,
-		IP:          ip,
-		Status:      status,
-		Original:    original,
-		Text:        text,
-		Shapes:      shapes,
-		Tags:        tags,
-		Nominatives: nomins,
-		Title:       title,
-		NumWords:    numWords,
-		NumSents:    numSents,
-		Sources:     []*Source{},
-	}
-	err = DB.
-		Model(sourceObj).
-		Clauses(clause.OnConflict{
-			DoNothing: true,
-			UpdateAll: true,
-		}).
-		Association("Texts").
-		Append(toAdd)
+	// Connect the source to the text
+	err = TextConnectSource(sourceObj.ID, textFound.ID)
+	alreadyLinkedToSource := false
 	if err != nil {
-		if strings.Contains(err.Error(), "SQLSTATE 23503") {
-			log.Format("Text link already exists, not replacing.", log.Params{
-				"url":   url,
-				"title": title,
-			})
-			return errors.New("already exists")
+		if strings.Contains(err.Error(), duplicateKeyViolatedError) {
+			alreadyLinkedToSource = true
+		} else {
+			log.Error("could not link text to source", err, log.Params{})
+			return err
 		}
-		return err
+
 	}
 	log.Format("Successfully created a new text", log.Params{
-		"url":       url,
-		"title":     title,
-		"ip":        ip,
-		"num_words": numWords,
-		"num_sents": numSents,
+		"url":             url,
+		"title":           title,
+		"ip":              ip,
+		"num_words":       numWords,
+		"num_sents":       numSents,
+		"already_existed": alreadyExisted,
+		"already_linked":  alreadyLinkedToSource,
 	})
 	return nil
+}
+
+// IsText checks whether the url already exists
+func IsText(url string) (bool, error) {
+	if _, found := urlToID.Get(url); found {
+		return true, nil
+	}
+	count := int64(0)
+	err := DB.First(&User{}, "url = ?", url).Count(&count).Error
+	return count != 0, err
+}
+
+// GetText returns a text by the url
+func GetText(url string, fill bool) (*Text, error) {
+	text := &Text{}
+	if ID, found := urlToID.Get(url); found {
+		// Don't ping DB to fill the object
+		if !fill {
+			text.ID = ID.(uint)
+			return text, nil
+		}
+		return text, DB.First(text, ID.(uint)).Error
+	}
+	err := DB.First(text, "url = ?", url).Error
+	if err != nil {
+		return text, err
+	}
+	urlToID.Set(url, text.ID, cache.NoExpiration)
+	return text, nil
+}
+
+// TextAddSource will add a manual relationship between a source and a text
+func TextConnectSource(sourceID, textID uint) error {
+	return DB.Exec("INSERT into source_texts (source_id, text_id) values (?, ?)", sourceID, textID).Error
 }
 
 // findTexts is a general matcher that takes a username and runs it

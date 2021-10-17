@@ -41,7 +41,7 @@ func GetUser(name string, fill bool) (*User, error) {
 	}
 	err := DB.First(user, "name = ?", name).Error
 	if err != nil {
-		return nil, err
+		return user, err
 	}
 	usernameToID.Set(name, user.ID, cache.NoExpiration)
 	return user, nil

@@ -17,6 +17,8 @@ var (
 	sourceToID = cache.New(cache.NoExpiration, cache.NoExpiration)
 	// crawlerToID maps crawler name to its DB ID
 	crawlerToID = cache.New(cache.NoExpiration, cache.NoExpiration)
+	// urlToID maps a text url to its DB ID
+	urlToID = cache.New(cache.NoExpiration, cache.NoExpiration)
 )
 
 // InitDB opens the database.

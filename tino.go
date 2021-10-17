@@ -95,6 +95,7 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "already exists" {
+			// If it already exists, still link the found text to the source if not already
 			httpJSON(w, httpMessageReturn{Message: "already exists"}, http.StatusOK, nil)
 			return
 		}
