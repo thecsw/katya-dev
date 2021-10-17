@@ -1,14 +1,15 @@
-package main
+package storage
 
 import (
 	"errors"
 	"strings"
 
+	"github.com/thecsw/katya/log"
 	"gorm.io/gorm/clause"
 )
 
-// createText creates a full text that we receive with Noor
-func createText(
+// CreateText creates a full text that we receive with Noor
+func CreateText(
 	source string,
 	url string,
 	ip string,
@@ -22,7 +23,7 @@ func createText(
 	numWords uint,
 	numSents uint,
 ) error {
-	sourceObj, err := getSource(source, false)
+	sourceObj, err := GetSource(source, false)
 	if err != nil {
 		return err
 	}
@@ -50,7 +51,7 @@ func createText(
 		Append(toAdd)
 	if err != nil {
 		if strings.Contains(err.Error(), "SQLSTATE 23503") {
-			lf("Text link already exists, not replacing.", params{
+			log.Format("Text link already exists, not replacing.", log.Params{
 				"url":   url,
 				"title": title,
 			})
@@ -58,7 +59,7 @@ func createText(
 		}
 		return err
 	}
-	lf("Successfully created a new text", params{
+	log.Format("Successfully created a new text", log.Params{
 		"url":       url,
 		"title":     title,
 		"ip":        ip,

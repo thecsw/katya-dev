@@ -12,22 +12,55 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/pterm/pterm"
 	"github.com/rs/cors"
+	"github.com/thecsw/katya/log"
+	"github.com/thecsw/katya/storage"
 )
 
 const (
+	// LISTEN_ADDRESS is the port number of our HTTP router
 	LISTEN_ADDRESS = ":32000"
 
+	// CRAWLERS_DIR is the directory for our crawlers (spiders)
 	CRAWLERS_DIR = "./chelsea/chelsea/spiders/"
-	LOGS_DIR     = "./logs/"
-	SCRAPY_DIR   = "./chelsea/"
+	// LOGS_DIR is where we send the logs from our crawlers (spiders)
+	LOGS_DIR = "./logs/"
+	// SCRAPY_DIR is the home directory of our scrapy instance
+	SCRAPY_DIR = "./chelsea/"
 
+	// RESTClientCert is the location of HTTP router's certificate
 	RESTClientCert string = "./certs/cert.pem"
-	RESTClientKey  string = "./certs/privkey.pem"
+	// RESTClientKey is the location of HTTP router's private key
+	RESTClientKey string = "./certs/privkey.pem"
+
+	// HOST is the destination address of our DB
+	DB_HOST = "katya.sandyuraz.com"
+	// PORT is the DB port that we have
+	DB_PORT = 5432
+	// DBNAME is the database name of our DB (usually username)
+	DB_DBNAME = "sandy"
+	// USER is the DB user we will be working as
+	DB_USER = "sandy"
+	// SSLMODE dictates on how we check our SSL
+	DB_SSLMODE = "verify-full"
+	// SSLCERT is the certificate CA signed for us
+	DB_SSLCERT = "./tools/client/client.crt"
+	// SSLKEY is our private key to prove our identity
+	DB_SSLKEY = "./tools/client/client.key"
+	// SSLROOTCERT is the certificate list of the ruling CA (self-CA)
+	DB_SSLROOTCERT = "./tools/ca/ca.crt"
 )
 
 var (
 	//go:embed chelsea/chelsea/spiders/template.py
 	templateCrawler string
+
+	// dsn = fmt.Sprintf(
+	// 	"host=%s port=%d user=%s dbname=%s sslmode=%s sslcert=%s sslkey=%s sslrootcert=%s",
+	// 	HOST, PORT, USER, DBNAME, SSLMODE, SSLCERT, SSLKEY, SSLROOTCERT,
+	// )
+
+	// // dsn to connect to Postgres.
+	dsn = "host=127.0.0.1 port=5432 user=sandy dbname=sandy"
 )
 
 func main() {
@@ -48,42 +81,44 @@ func main() {
 		Println("Katya and friends or The Liberated Corpus")
 
 	// Initialize our log instance
-	linit()
+	log.Init()
 
 	// +-------------------------------------+
 	// |              DATABASE               |
 	// +-------------------------------------+
 
 	// Initializing the database connection
-	lf("Initializing the database connection", params{"DSN": dsn})
-	if err := initDB(); err != nil {
-		lerr("Failed opening a database connection", err, params{"DSN": dsn})
+	log.Format("Initializing the database connection", log.Params{"DSN": dsn})
+	if err := storage.InitDB(dsn); err != nil {
+		log.Error("Failed opening a database connection", err, log.Params{"DSN": dsn})
 		return
 	}
 	defer func() {
-		lf("Closing the database connection", params{"DSN": dsn})
-		closeDB()
+		log.Format("Closing the database connection", log.Params{"DSN": dsn})
+		storage.CloseDB()
 	}()
 
 	// +-------------------------------------+
 	// |             OTHER STUFF             |
 	// +-------------------------------------+
-	l("Checking for the existence of the global element")
-	if !doesGlobalExist() {
-		l("Creating the global element")
-		createGlobal()
+	log.Info("Checking for the existence of the global element")
+	if !storage.DoesGlobalExist() {
+		log.Info("Creating the global element")
+		if err := storage.CreateGlobal(); err != nil {
+			log.Error("failed to create a global element", err, log.Params{})
+		}
 	}
 	// Create the delta caches
-	l("Creating delta words/sents caches")
+	log.Info("Creating delta words/sents caches")
 	globalNumWordsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 	globalNumSentsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 
-	l("Creating default users")
-	createUser("sandy", "urazayev")
-	createUser("kate", "crnkovich")
-	createUser("stephen", "dickey")
+	log.Info("Creating default users")
+	storage.CreateUser("sandy", "urazayev")
+	storage.CreateUser("kate", "crnkovich")
+	storage.CreateUser("stephen", "dickey")
 
-	l("Spinning up the words/sents goroutines")
+	log.Info("Spinning up the words/sents goroutines")
 	go updateGlobalWordSentsDeltas()
 	go updateSourcesWordSentsDeltas()
 
@@ -91,7 +126,7 @@ func main() {
 	// |             HTTP Router             |
 	// +-------------------------------------+
 
-	l("Creating our HTTP (API) router")
+	log.Info("Creating our HTTP (API) router")
 	myRouter := mux.NewRouter()
 
 	myRouter.HandleFunc("/", helloReceiver).Methods(http.MethodGet)
@@ -109,7 +144,7 @@ func main() {
 	subRouter.HandleFunc("/source", userDeleteSource).Methods(http.MethodDelete)
 	subRouter.HandleFunc("/status", crawlerStatusReceiver).Methods(http.MethodGet)
 
-	l("Enabled the auth portal for the API router")
+	log.Info("Enabled the auth portal for the API router")
 	subRouter.Use(loggingMiddleware)
 
 	// +-------------------------------------+
@@ -117,7 +152,7 @@ func main() {
 	// +-------------------------------------+
 
 	// Declare and define our HTTP handler
-	l("Configuring the HTTP router")
+	log.Info("Configuring the HTTP router")
 	corsOptions := cors.New(cors.Options{
 		AllowedOrigins:     []string{"https://sandyuraz.com"},
 		AllowedMethods:     []string{http.MethodPost, http.MethodGet, http.MethodDelete},
@@ -143,10 +178,10 @@ func main() {
 		// 	log.Println(err)
 		// }
 		if err := srv.ListenAndServeTLS(RESTClientCert, RESTClientKey); err != nil {
-			lerr("Failed to fire up the router", err, params{})
+			log.Error("Failed to fire up the router", err, log.Params{})
 		}
 	}()
-	l("Started the HTTP router")
+	log.Info("Started the HTTP router")
 
 	// OLD SERVER
 	// handler := cors.Default().Handler(myRouter)
@@ -169,5 +204,5 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
-	l("API is shutting down")
+	log.Info("API is shutting down")
 }

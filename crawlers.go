@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	"github.com/thecsw/katya/log"
+	"github.com/thecsw/katya/storage"
 )
 
 // crawlerActionPayload is the POST body of crawler actions
@@ -22,41 +24,41 @@ func crawlerCreator(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
 	if err != nil {
-		lerr("Failed decoding a crawler creator payload", err, params{})
+		log.Error("Failed decoding a crawler creator payload", err, log.Params{})
 		return
 	}
-	user := r.Context().Value(ContextKey("user")).(User)
-	thisParams := params{
+	user := r.Context().Value(ContextKey("user")).(storage.User)
+	thisLogParams := log.Params{
 		"user": user.Name,
 		"link": payload.Link,
 	}
 	name, err := allocateCrawler(user.Name, payload.Link, payload.OnlySubpaths)
 	if err != nil {
-		lerr("Failed allocating a crawler in creator payload", err, thisParams)
+		log.Error("Failed allocating a crawler in creator payload", err, thisLogParams)
 		httpJSON(w, nil, http.StatusInternalServerError, err)
 		return
 	}
 	httpJSON(w, httpMessageReturn{"created crawler: " + name}, http.StatusOK, nil)
 }
 
-// crawlerRunner triggers a crawler
+// crawlog.Errorunner triggers a crawler
 func crawlerRunner(w http.ResponseWriter, r *http.Request) {
 	payload := &crawlerActionPayload{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
 	if err != nil {
-		lerr("Failed decoding a crawler trigger payload", err, params{})
+		log.Error("Failed decoding a crawler trigger payload", err, log.Params{})
 		httpJSON(w, nil, http.StatusBadRequest, err)
 		return
 	}
-	user := r.Context().Value(ContextKey("user")).(User)
-	thisParams := params{
+	user := r.Context().Value(ContextKey("user")).(storage.User)
+	thisLogParams := log.Params{
 		"user": user.Name,
 		"link": payload.Link,
 	}
 	name, err := triggerCrawler(user.Name, payload.Link, os.Stderr)
 	if err != nil {
-		lerr("Failed triggering a crawler in creator payload", err, thisParams)
+		log.Error("Failed triggering a crawler in creator payload", err, thisLogParams)
 		httpJSON(w, nil, http.StatusInternalServerError, err)
 		return
 	}
@@ -69,7 +71,7 @@ func crawlerStatusReceiver(w http.ResponseWriter, r *http.Request) {
 		httpJSON(w, nil, http.StatusBadRequest, errors.New("empty crawler name"))
 		return
 	}
-	val, err := getLastScrape(crawlerName)
+	val, err := storage.GetLastScrape(crawlerName)
 	if err != nil {
 		httpJSON(w, nil, http.StatusInternalServerError, errors.Wrap(err, "getting last scrape"))
 		return

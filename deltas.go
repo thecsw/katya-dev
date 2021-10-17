@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/patrickmn/go-cache"
+	"github.com/thecsw/katya/log"
+	"github.com/thecsw/katya/storage"
 )
 
 const (
@@ -36,8 +38,8 @@ func updateGlobalWordSentsDeltas() {
 		// Update the word count
 		wordDelta, _ := globalNumWordsDelta.Get(globalDeltaCacheKey)
 		if wordDelta.(uint) != 0 {
-			if err := updateGlobalWordNum(wordDelta.(uint)); err != nil {
-				lerr("failed updating global word count", err, params{})
+			if err := storage.UpdateGlobalWordNum(wordDelta.(uint)); err != nil {
+				log.Error("failed updating global word count", err, log.Params{})
 				continue
 			}
 			actuallyUpdated = true
@@ -45,8 +47,8 @@ func updateGlobalWordSentsDeltas() {
 		// Update the sentences count
 		sentDelta, _ := globalNumSentsDelta.Get(globalDeltaCacheKey)
 		if sentDelta.(uint) != 0 {
-			if err := updateGlobalSentNum(sentDelta.(uint)); err != nil {
-				lerr("failed updating global word count", err, params{})
+			if err := storage.UpdateGlobalSentNum(sentDelta.(uint)); err != nil {
+				log.Error("failed updating global word count", err, log.Params{})
 				continue
 			}
 			actuallyUpdated = true
@@ -56,7 +58,7 @@ func updateGlobalWordSentsDeltas() {
 		globalNumSentsDelta.Set(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 		// Log the info
 		if actuallyUpdated {
-			l("Successfully updated the global words/sents count")
+			log.Info("Successfully updated the global words/sents count")
 		}
 	}
 }
@@ -76,8 +78,8 @@ func updateSourcesWordSentsDeltas() {
 			if delta == 0 {
 				continue
 			}
-			if err := updateSourceWordNum(k, delta); err != nil {
-				lerr("failed updating source word count", err, params{
+			if err := storage.UpdateSourceWordNum(k, delta); err != nil {
+				log.Error("failed updating source word count", err, log.Params{
 					"source": k,
 				})
 				continue
@@ -93,8 +95,8 @@ func updateSourcesWordSentsDeltas() {
 			if delta == 0 {
 				continue
 			}
-			if err := updateSourceSentNum(k, delta); err != nil {
-				lerr("failed updating source sent count", err, params{
+			if err := storage.UpdateSourceSentNum(k, delta); err != nil {
+				log.Error("failed updating source sent count", err, log.Params{
 					"source": k,
 				})
 				continue
@@ -104,7 +106,7 @@ func updateSourcesWordSentsDeltas() {
 		}
 		// Log the info
 		if actuallyUpdated {
-			l("Successfully update sources' words/sents count")
+			log.Info("Successfully update sources' words/sents count")
 		}
 	}
 }

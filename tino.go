@@ -7,6 +7,8 @@ import (
 
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
+	"github.com/thecsw/katya/log"
+	"github.com/thecsw/katya/storage"
 )
 
 // NoorPayload is what we get from our crawlers on every text submission
@@ -43,25 +45,25 @@ type NoorPayload struct {
 func noorReceiver(w http.ResponseWriter, r *http.Request) {
 	noorKey := r.Header.Get("Authorization")
 	if noorKey != "noorkey" {
-		lerr("Bad Authorization header", errors.New("bad key"), params{})
+		log.Error("Bad Authorization header", errors.New("bad key"), log.Params{})
 		return
 	}
 	payload := &NoorPayload{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
 	if err != nil {
-		lerr("Failed decoding a noor payload", err, params{})
+		log.Error("Failed decoding a noor payload", err, log.Params{})
 		return
 	}
-	thisParams := params{
+	thisParams := log.Params{
 		"crawler": payload.Name,
 		"url":     payload.URL,
 		"source":  payload.StartURL,
 	}
 	// Check if such a crawler exists
-	crawlerExists, err := isCrawler(payload.Name)
+	crawlerExists, err := storage.IsCrawler(payload.Name)
 	if err != nil {
-		lerr("Failed checking crawler's existence", err, params{
+		log.Error("Failed checking crawler's existence", err, log.Params{
 			"crawler": payload.Name,
 		})
 	}
@@ -76,7 +78,7 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Try to add the texts to the database
-	err = createText(
+	err = storage.CreateText(
 		payload.StartURL,
 		payload.URL,
 		payload.IP,
@@ -96,7 +98,7 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 			httpJSON(w, httpMessageReturn{Message: "already exists"}, http.StatusOK, nil)
 			return
 		}
-		lerr("Failed adding a new text", err, thisParams)
+		log.Error("Failed adding a new text", err, thisParams)
 		httpJSON(
 			w,
 			nil,
@@ -133,21 +135,25 @@ type StatusPayload struct {
 func statusReceiver(w http.ResponseWriter, r *http.Request) {
 	noorKey := r.Header.Get("Authorization")
 	if noorKey != "noorkey" {
-		lerr("Bad Authorization header", errors.New("bad key"), params{})
+		log.Error("Bad Authorization header", errors.New("bad key"), log.Params{})
 		return
 	}
 	payload := &StatusPayload{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
 	if err != nil {
-		lerr("Failed decoding a received status", err, params{})
+		log.Error("Failed decoding a received status", err, log.Params{})
 	}
 
 	switch payload.Status {
 	case "started":
-		createScrape(payload.Name)
+		if err := storage.CreateScrape(payload.Name); err != nil {
+			log.Error("failed to log create a scrape", err, log.Params{"name": payload.Name})
+		}
 	case "finished":
-		finishScrape(payload.Name)
+		if err := storage.FinishScrape(payload.Name); err != nil {
+			log.Error("failed to log finish a scrape", err, log.Params{"name": payload.Name})
+		}
 	default:
 		httpJSON(w, nil, http.StatusBadRequest, errors.New("unknown status received"))
 		return

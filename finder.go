@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/thecsw/katya/storage"
+	"github.com/thecsw/katya/utils"
 )
 
 const (
@@ -43,7 +46,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// grab the user context from the middleware
-	user := r.Context().Value(ContextKey("user")).(User)
+	user := r.Context().Value(ContextKey("user")).(storage.User)
 
 	// partLookup specifies what part of the text is matched against the query
 	// possible options are:
@@ -64,7 +67,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 	caseSensitive := r.URL.Query().Get("case_sensitive")
 
 	// Fallback to a by-text lookup if not given or bad
-	if _, ok := findByPart[partLookup]; !ok {
+	if _, ok := storage.MapPartToFindFunction[partLookup]; !ok {
 		partLookup = "text"
 	}
 
@@ -81,7 +84,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Find all the matches from the database by doing a string submatch search
-	resultsDB, err := findByPart[partLookup](user.ID, query, limit, offset, caseSensitive == "1")
+	resultsDB, err := storage.MapPartToFindFunction[partLookup](user.ID, query, limit, offset, caseSensitive == "1")
 	if err != nil {
 		httpJSON(w, nil, http.StatusInternalServerError, err)
 		return
@@ -100,7 +103,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Try to find all indices of this substring in the text to later map it to token indices
-		matches := stringsIndexMultiple(whatToSearchIn[partLookup], query, caseSensitive == "1")
+		matches := utils.StringsIndexMultiple(whatToSearchIn[partLookup], query, caseSensitive == "1")
 
 		// If there are no matches found (DB lied???) then we skip this
 		if len(matches) < 1 {
@@ -114,7 +117,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 		nominativesSplit := strings.Split(v.Nominatives, " ")
 
 		// File every match in the found text in its own result case
-		for _, index := range matches[:min(limitPerSource, len(matches))] {
+		for _, index := range matches[:utils.Min(limitPerSource, len(matches))] {
 			// If we hit a bad index, skip and continue
 			if index < 1 {
 				continue
@@ -129,16 +132,16 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Map the actual found query's index into the token index
-			resultsSplitLeftIndex := findTokenIndex(whereToFindTheTokenIndex[partLookup], index)
-			resultsSplitRightIndex := findTokenIndex(whereToFindTheTokenIndex[partLookup], index+len(query)) + 1
+			resultsSplitLeftIndex := utils.FindTokenIndex(whereToFindTheTokenIndex[partLookup], index)
+			resultsSplitRightIndex := utils.FindTokenIndex(whereToFindTheTokenIndex[partLookup], index+len(query)) + 1
 
 			// Find the indices that we will split the tokens from left to right
-			leftSplitLeftIndex := max(0, resultsSplitLeftIndex-searchResultWidth)
+			leftSplitLeftIndex := utils.Max(0, resultsSplitLeftIndex-searchResultWidth)
 			leftSplitRightIndex := resultsSplitLeftIndex
 			centerSplitLeftIndex := resultsSplitLeftIndex
 			centerSplitRightIndex := resultsSplitRightIndex
 			rightSplitLeftIndex := resultsSplitRightIndex
-			rightSplitRightIndex := min(len(textSplit), resultsSplitRightIndex+searchResultWidth)
+			rightSplitRightIndex := utils.Min(len(textSplit), resultsSplitRightIndex+searchResultWidth)
 
 			// Split the text tokens into the results section
 			leftTextSplit := textSplit[leftSplitLeftIndex:leftSplitRightIndex]
@@ -167,9 +170,9 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 
 			// Create the object that we will be serving
 			toAppend := SearchResult{
-				LeftReverse:   reverseString(leftText),
+				LeftReverse:   utils.ReverseString(leftText),
 				Left:          leftText,
-				CenterReverse: reverseString(centerText),
+				CenterReverse: utils.ReverseString(centerText),
 				Center:        centerText,
 				Right:         rightText,
 				Source:        v.URL,

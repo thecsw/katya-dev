@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"crypto/sha512"
@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// extractIP makes sure the request has a proper request IP.
-func extractIP(r *http.Request) (string, error) {
+// ExtractIP makes sure the request has a proper request IP.
+func ExtractIP(r *http.Request) (string, error) {
 	// if not a proper remote addr, return empty
 	if !strings.ContainsRune(r.RemoteAddr, ':') {
 		return "", errors.New("lol")
@@ -22,13 +22,8 @@ func extractIP(r *http.Request) (string, error) {
 	return ipAddr, nil
 }
 
-// shaEncode return SHA512 sum of a string.
-func shaEncode(input string) string {
+// ShaEncode return SHA512 sum of a string.
+func ShaEncode(input string) string {
 	sha := sha512.Sum512([]byte(input))
 	return hex.EncodeToString(sha[:])
-}
-
-// verifyAuth verifies that the credentials are OK
-func verifyAuth(w http.ResponseWriter, r *http.Request) {
-	httpJSON(w, httpMessageReturn{Message: "OK"}, http.StatusOK, nil)
 }

@@ -1,19 +1,19 @@
-package main
+package storage
 
 import "strings"
 
 var (
-	// findByPart maps a text type to the find function of its type
-	findByPart = map[string]func(uint, string, int, int, bool) ([]Text, error){
-		"text":   findTextsByUserID,
-		"shapes": findShapesByUserID,
-		"tags":   findTagsByUserID,
-		"nomins": findNominativesByUserID,
+	// MapPartToFindFunction maps a text type to the find function of its type
+	MapPartToFindFunction = map[string]func(uint, string, int, int, bool) ([]Text, error){
+		"text":   FindTextsByUserID,
+		"shapes": FindShapesByUserID,
+		"tags":   FindTagsByUserID,
+		"nomins": FindNominativesByUserID,
 	}
 )
 
-// findTextsByUserID runs a DB search against the text part of texts
-func findTextsByUserID(userID uint,
+// FindTextsByUserID runs a DB search against the text part of texts
+func FindTextsByUserID(userID uint,
 	query string,
 	limit int,
 	offset int,
@@ -22,8 +22,8 @@ func findTextsByUserID(userID uint,
 	return findTextsPartsByUserID("texts.text", userID, query, limit, offset, caseSensitive)
 }
 
-// findShapesByUserID runs a DB search against the shapes part of texts
-func findShapesByUserID(userID uint,
+// FindShapesByUserID runs a DB search against the shapes part of texts
+func FindShapesByUserID(userID uint,
 	query string,
 	limit int,
 	offset int,
@@ -32,8 +32,8 @@ func findShapesByUserID(userID uint,
 	return findTextsPartsByUserID("texts.shapes", userID, query, limit, offset, caseSensitive)
 }
 
-// findTagsByUserID runs a DB search against the tags part of texts
-func findTagsByUserID(userID uint,
+// FindTagsByUserID runs a DB search against the tags part of texts
+func FindTagsByUserID(userID uint,
 	query string,
 	limit int,
 	offset int,
@@ -42,8 +42,8 @@ func findTagsByUserID(userID uint,
 	return findTextsPartsByUserID("texts.tags", userID, query, limit, offset, caseSensitive)
 }
 
-// findNominativesByUserID runs a DB search against the nominatives part of texts
-func findNominativesByUserID(userID uint,
+// FindNominativesByUserID runs a DB search against the nominatives part of texts
+func FindNominativesByUserID(userID uint,
 	query string,
 	limit int,
 	offset int,

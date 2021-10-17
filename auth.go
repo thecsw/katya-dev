@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/patrickmn/go-cache"
+	"github.com/thecsw/katya/storage"
+	"github.com/thecsw/katya/utils"
 )
 
 var (
@@ -30,7 +32,7 @@ type ContextKey string
 // loggingMiddleware does a full validation AND authentication for a Basic Auth attempt
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ipAddr, err := extractIP(r)
+		ipAddr, err := utils.ExtractIP(r)
 		if err != nil {
 			httpJSON(w, nil, http.StatusBadRequest, errors.New("unknown origin"))
 			return
@@ -64,12 +66,12 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			httpJSON(w, nil, http.StatusBadRequest, errors.New("bad user credentials"))
 			return
 		}
-		foundUser, err := getUser(user, true)
+		foundUser, err := storage.GetUser(user, true)
 		if err != nil || foundUser.Name == "" {
 			httpJSON(w, nil, http.StatusForbidden, errors.New("bad user credentials"))
 			return
 		}
-		if foundUser.Password != shaEncode(pass) {
+		if foundUser.Password != utils.ShaEncode(pass) {
 			httpJSON(w, nil, http.StatusForbidden, errors.New("bad user credentials"))
 			// Someone is maybe trying to guess the password
 			badLoginAttempts.Add(ipAddr, uint(0), cache.DefaultExpiration)
@@ -79,4 +81,9 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		newContext := context.WithValue(context.TODO(), ContextKey("user"), *foundUser)
 		next.ServeHTTP(w, r.WithContext(newContext))
 	})
+}
+
+// verifyAuth verifies that the credentials are OK
+func verifyAuth(w http.ResponseWriter, r *http.Request) {
+	httpJSON(w, httpMessageReturn{Message: "OK"}, http.StatusOK, nil)
 }

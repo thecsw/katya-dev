@@ -1,13 +1,14 @@
-package main
+package storage
 
 import (
 	"github.com/patrickmn/go-cache"
+	"github.com/thecsw/katya/log"
 	"gorm.io/gorm"
 )
 
-// createSource creates a source for a user
-func createSource(user, link string) error {
-	userID, err := getUser(user, false)
+// CreateSource creates a source for a user
+func CreateSource(user, link string) error {
+	userID, err := GetUser(user, false)
 	if err != nil {
 		return err
 	}
@@ -15,9 +16,9 @@ func createSource(user, link string) error {
 		Link:     link,
 		NumWords: 0,
 	}
-	source, err := getSource(link, true)
+	source, err := GetSource(link, true)
 	if err != nil && err != gorm.ErrRecordNotFound {
-		lerr("Failed to check for source existence", err, params{"user": user, "link": link})
+		log.Error("Failed to check for source existence", err, log.Params{"user": user, "link": link})
 		return err
 	}
 	// By default, set the found ID to the toAdd mention
@@ -25,34 +26,34 @@ func createSource(user, link string) error {
 	if source.ID == 0 {
 		err = DB.Create(toAdd).Error
 		if err != nil {
-			lerr("Failed to create a source", err, params{"user": user, "link": link})
+			log.Error("Failed to create a source", err, log.Params{"user": user, "link": link})
 			return err
 		}
 	}
 	err = DB.Exec("INSERT into user_sources (source_id, user_id) values (?, ?)", toAdd.ID, userID.ID).Error
 	if err != nil {
-		lerr("Failed to append a source", err, params{"user": user, "link": link})
+		log.Error("Failed to append a source", err, log.Params{"user": user, "link": link})
 		return err
 	}
-	lf("Successfully created a new source", params{"user": user, "link": link})
+	log.Format("Successfully created a new source", log.Params{"user": user, "link": link})
 	return nil
 }
 
-// removeSource removes the user-link connection
-func removeSource(user, link string) error {
-	userID, err := getUser(user, false)
+// RemoveSource removes the user-link connection
+func RemoveSource(user, link string) error {
+	userID, err := GetUser(user, false)
 	if err != nil {
 		return err
 	}
-	source, err := getSource(link, true)
+	source, err := GetSource(link, true)
 	if err != nil {
 		return err
 	}
 	return DB.Exec("DELETE FROM user_sources WHERE source_id = ? AND user_id = ?", source.ID, userID.ID).Error
 }
 
-// getSource returns the source object from database
-func getSource(source string, fill bool) (*Source, error) {
+// GetSource returns the source object from database
+func GetSource(source string, fill bool) (*Source, error) {
 	sourceObj := &Source{}
 	if ID, found := sourceToID.Get(source); found {
 		// Don't ping DB to fill the object
@@ -70,8 +71,8 @@ func getSource(source string, fill bool) (*Source, error) {
 	return sourceObj, nil
 }
 
-// isSource checks for a source's existence
-func isSource(name string) (bool, error) {
+// IsSource checks for a source's existence
+func IsSource(name string) (bool, error) {
 	if _, found := sourceToID.Get(name); found {
 		return true, nil
 	}
@@ -80,16 +81,16 @@ func isSource(name string) (bool, error) {
 	return count != 0, err
 }
 
-// updateSourceWordNum updates source's number of words
-func updateSourceWordNum(url string, numWords uint) error {
+// UpdateSourceWordNum updates source's number of words
+func UpdateSourceWordNum(url string, numWords uint) error {
 	return DB.Exec(
 		"UPDATE sources SET num_words = num_words + ? WHERE link = ?",
 		numWords, url).
 		Error
 }
 
-// updateSourceSentNum updates source's number of sentences
-func updateSourceSentNum(url string, numSents uint) error {
+// UpdateSourceSentNum updates source's number of sentences
+func UpdateSourceSentNum(url string, numSents uint) error {
 	return DB.Exec(
 		"UPDATE sources SET num_sentences = num_sentences + ? WHERE link = ?",
 		numSents, url).

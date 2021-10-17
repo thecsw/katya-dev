@@ -1,33 +1,35 @@
-package main
+package storage
 
 import (
 	"errors"
 
 	"github.com/patrickmn/go-cache"
+	"github.com/thecsw/katya/log"
+	"github.com/thecsw/katya/utils"
 	"gorm.io/gorm"
 )
 
-// createUser creates a user in the database
-func createUser(name, pass string) error {
-	found, err := isUser(name)
+// CreateUser creates a user in the database
+func CreateUser(name, pass string) error {
+	found, err := IsUser(name)
 	if found {
-		lerr("User already exists", err, params{"user": name})
+		log.Error("User already exists", err, log.Params{"user": name})
 		return errors.New("User already exists")
 	}
 	if err != nil && err != gorm.ErrRecordNotFound {
-		lerr("Failed to check user existence", err, params{"user": name})
+		log.Error("Failed to check user existence", err, log.Params{"user": name})
 		return err
 	}
-	err = DB.Create(&User{Name: name, Password: shaEncode(pass)}).Error
+	err = DB.Create(&User{Name: name, Password: utils.ShaEncode(pass)}).Error
 	if err != nil {
 		return err
 	}
-	lf("Successfully created a new user", params{"name": name})
+	log.Format("Successfully created a new user", log.Params{"name": name})
 	return nil
 }
 
-// getUser gets a user from the database by the username
-func getUser(name string, fill bool) (*User, error) {
+// GetUser gets a user from the database by the username
+func GetUser(name string, fill bool) (*User, error) {
 	user := &User{}
 	if ID, found := usernameToID.Get(name); found {
 		// Don't ping DB to fill the object
@@ -45,8 +47,8 @@ func getUser(name string, fill bool) (*User, error) {
 	return user, nil
 }
 
-// isUser check if a username exists in the system
-func isUser(name string) (bool, error) {
+// IsUser check if a username exists in the system
+func IsUser(name string) (bool, error) {
 	if _, found := usernameToID.Get(name); found {
 		return true, nil
 	}
@@ -55,8 +57,8 @@ func isUser(name string) (bool, error) {
 	return count != 0, err
 }
 
-// getUserSources returns user's sources associated with him
-func getUserSources(user string) ([]Source, error) {
+// GetUserSources returns user's sources associated with him
+func GetUserSources(user string) ([]Source, error) {
 	sources := make([]Source, 0, 16)
 	err := DB.Model(sources).
 		Joins("JOIN user_sources on sources.id = user_sources.source_id").

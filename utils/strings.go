@@ -1,11 +1,11 @@
-package main
+package utils
 
 import "strings"
 
-// stringsIndexMultiple finds all indices where a substring occurs
+// StringsIndexMultiple finds all indices where a substring occurs
 // in the given string, whether it's a case sensitive search
 // or not can be adjusted by the user
-func stringsIndexMultiple(s, subs string, caseSensitive bool) []int {
+func StringsIndexMultiple(s, subs string, caseSensitive bool) []int {
 	if !caseSensitive {
 		s = strings.ToLower(s)
 		subs = strings.ToLower(subs)
@@ -26,8 +26,8 @@ func stringsIndexMultiple(s, subs string, caseSensitive bool) []int {
 	return res
 }
 
-// reverseString from https://groups.google.com/g/golang-nuts/c/oPuBaYJ17t4
-func reverseString(what string) string {
+// ReverseString from https://groups.google.com/g/golang-nuts/c/oPuBaYJ17t4
+func ReverseString(what string) string {
 	// Get Unicode code points.
 	n := 0
 	rune := make([]rune, len(what))
@@ -44,8 +44,8 @@ func reverseString(what string) string {
 	return string(rune)
 }
 
-// findTokenIndex maps a found index to a tokenized slice index
-func findTokenIndex(tokens []string, index int) int {
+// FindTokenIndex maps a found index to a tokenized slice index
+func FindTokenIndex(tokens []string, index int) int {
 	currentSum := 0
 	for i, v := range tokens {
 		if currentSum > index {

@@ -1,4 +1,4 @@
-package main
+package log
 
 import (
 	"os"
@@ -14,7 +14,7 @@ var (
 	// log is a global logrus instance.
 	log = logrus.New()
 
-	dbLogger = logger.New(
+	DBLogger = logger.New(
 		stdlog.New(os.Stdout, "\r\n", stdlog.LstdFlags), // io writer
 		logger.Config{
 			// Slow SQL threshold
@@ -29,11 +29,11 @@ var (
 	)
 )
 
-// params is an alias for `map[string]interface{}`.
-type params map[string]interface{}
+// Params is an alias for `map[string]interface{}`.
+type Params map[string]interface{}
 
-// linit initializes the global logrus instance.
-func linit() {
+// Init initializes the global logrus instance.
+func Init() {
 	log.SetFormatter(&logrus.TextFormatter{
 		ForceColors:     true,
 		ForceQuote:      true,
@@ -42,23 +42,23 @@ func linit() {
 		DisableSorting:  false,
 	})
 	log.SetOutput(os.Stdout)
-	l("Logger is created")
+	Info("Logger is created")
 }
 
-// lf is an INFO log output with fields.
-func lf(what string, fields params) {
+// Format is an INFO log output with fields.
+func Format(what string, fields Params) {
 	log.WithFields(logrus.Fields(fields)).Infoln(what)
 }
 
-// lerr is an ERROR log output with fields.
-func lerr(msg string, err error, fields params) {
+// Error is an ERROR log output with fields.
+func Error(msg string, err error, fields Params) {
 	if err == nil {
 		return
 	}
 	log.WithError(err).WithFields(logrus.Fields(fields)).Errorln(msg)
 }
 
-// l is an INFO log output.
-func l(what interface{}) {
+// Info is an INFO log output.
+func Info(what interface{}) {
 	log.Infoln(what)
 }

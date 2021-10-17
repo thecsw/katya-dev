@@ -1,14 +1,17 @@
-package main
+package storage
 
-import "github.com/patrickmn/go-cache"
+import (
+	"github.com/patrickmn/go-cache"
+	"github.com/thecsw/katya/log"
+)
 
-// createCrawler creates a crawler in the database
-func createCrawler(name, user, source string) error {
-	userObj, err := getUser(user, false)
+// CreateCrawler creates a crawler in the database
+func CreateCrawler(name, user, source string) error {
+	userObj, err := GetUser(user, false)
 	if err != nil {
 		return err
 	}
-	sourceObj, err := getSource(source, false)
+	sourceObj, err := GetSource(source, false)
 	if err != nil {
 		return err
 	}
@@ -20,7 +23,7 @@ func createCrawler(name, user, source string) error {
 	if err != nil {
 		return err
 	}
-	lf("Successfully created a new crawler", params{
+	log.Format("Successfully created a new crawler", log.Params{
 		"name":   name,
 		"user":   user,
 		"source": source,
@@ -28,8 +31,8 @@ func createCrawler(name, user, source string) error {
 	return nil
 }
 
-// getCrawler returns a crawler from the database
-func getCrawler(name string, fill bool) (*Crawler, error) {
+// GetCrawler returns a crawler from the database
+func GetCrawler(name string, fill bool) (*Crawler, error) {
 	crawlerObj := &Crawler{}
 	if ID, found := crawlerToID.Get(name); found {
 		// Don't ping DB to fill the object
@@ -47,8 +50,8 @@ func getCrawler(name string, fill bool) (*Crawler, error) {
 	return crawlerObj, nil
 }
 
-// isCrawler checks for a crawler's existence in the database
-func isCrawler(name string) (bool, error) {
+// IsCrawler checks for a crawler's existence in the database
+func IsCrawler(name string) (bool, error) {
 	if _, found := crawlerToID.Get(name); found {
 		return true, nil
 	}
