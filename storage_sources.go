@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/patrickmn/go-cache"
 	"gorm.io/gorm"
 )
@@ -17,9 +19,11 @@ func createSource(user, link string) error {
 	}
 	source, err := getSource(link, true)
 	if err != nil && err != gorm.ErrRecordNotFound {
-		lerr("Failed to check for source existince", err, params{"user": user, "link": link})
+		lerr("Failed to check for source existence", err, params{"user": user, "link": link})
 		return err
 	}
+	// By default, set the found ID to the toAdd mention
+	toAdd.ID = source.ID
 	if source.ID == 0 {
 		err = DB.Create(toAdd).Error
 		if err != nil {
@@ -27,6 +31,7 @@ func createSource(user, link string) error {
 			return err
 		}
 	}
+	fmt.Println("toadd:", toAdd.ID, "| userID:", userID.ID)
 	err = DB.Exec("INSERT into user_sources (source_id, user_id) values (?, ?)", toAdd.ID, userID.ID).Error
 	if err != nil {
 		lerr("Failed to append a source", err, params{"user": user, "link": link})
