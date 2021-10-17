@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// createText creates a full text that we receive with Noor
 func createText(
 	source string,
 	url string,
@@ -67,102 +68,30 @@ func createText(
 	return nil
 }
 
-func findTexts(
-	user string,
-	query string,
-	limit int,
-	offset int,
-	caseSensitive bool,
-) ([]Text, error) {
-	texts := make([]Text, 0, limit)
-	sqlWhere := "texts.text LIKE ?"
-	sqlMatch := "%" + query + "%"
-	if !caseSensitive {
-		sqlWhere = "lower(texts.text) LIKE ?"
-		sqlMatch = "%" + strings.ToLower(query) + "%"
-	}
-	err := DB.Model(texts).
-		Joins("JOIN source_texts on texts.id = source_texts.text_id").
-		Joins("JOIN sources on sources.id = source_texts.source_id").
-		Joins("JOIN user_sources on sources.id = user_sources.source_id").
-		Joins("JOIN users on user_sources.user_id = users.id AND users.name = ?", user).
-		Where(sqlWhere, sqlMatch).
-		Limit(limit).
-		Offset(offset).
-		Find(&texts).
-		Error
-	return texts, err
-}
-
-var (
-	findByPart = map[string]func(uint, string, int, int, bool) ([]Text, error){
-		"text":   findTextsByUserID,
-		"shapes": findShapesByUserID,
-		"tags":   findTagsByUserID,
-		"nomins": findNominativesByUserID,
-	}
-)
-
-func findTextsByUserID(userID uint,
-	query string,
-	limit int,
-	offset int,
-	caseSensitive bool,
-) ([]Text, error) {
-	return findTextsPartsByUserID("texts.text", userID, query, limit, offset, caseSensitive)
-}
-
-func findShapesByUserID(userID uint,
-	query string,
-	limit int,
-	offset int,
-	caseSensitive bool,
-) ([]Text, error) {
-	return findTextsPartsByUserID("texts.shapes", userID, query, limit, offset, caseSensitive)
-}
-
-func findTagsByUserID(userID uint,
-	query string,
-	limit int,
-	offset int,
-	caseSensitive bool,
-) ([]Text, error) {
-	return findTextsPartsByUserID("texts.tags", userID, query, limit, offset, caseSensitive)
-}
-
-func findNominativesByUserID(userID uint,
-	query string,
-	limit int,
-	offset int,
-	caseSensitive bool,
-) ([]Text, error) {
-	return findTextsPartsByUserID("texts.nominatives", userID, query, limit, offset, caseSensitive)
-}
-
-func findTextsPartsByUserID(
-	part string,
-	userID uint,
-	query string,
-	limit int,
-	offset int,
-	caseSensitive bool,
-) ([]Text, error) {
-	texts := make([]Text, 0, limit)
-	sqlWhere := part + " LIKE ?"
-	sqlMatch := "%" + query + "%"
-	if !caseSensitive {
-		sqlWhere = "lower(" + part + ") LIKE ?"
-		sqlMatch = "%" + strings.ToLower(query) + "%"
-	}
-	err := DB.Model(texts).
-		Joins("INNER JOIN source_texts on texts.id = source_texts.text_id").
-		Joins("INNER JOIN sources on sources.id = source_texts.source_id").
-		Joins("INNER JOIN user_sources on sources.id = user_sources.source_id").
-		Joins("INNER JOIN users on user_sources.user_id = users.id AND users.id = ?", userID).
-		Where(sqlWhere, sqlMatch).
-		Limit(limit).
-		Offset(offset).
-		Find(&texts).
-		Error
-	return texts, err
-}
+// findTexts is a general matcher that takes a username and runs it
+// func findTexts(
+// 	user string,
+// 	query string,
+// 	limit int,
+// 	offset int,
+// 	caseSensitive bool,
+// ) ([]Text, error) {
+// 	texts := make([]Text, 0, limit)
+// 	sqlWhere := "texts.text LIKE ?"
+// 	sqlMatch := "%" + query + "%"
+// 	if !caseSensitive {
+// 		sqlWhere = "lower(texts.text) LIKE ?"
+// 		sqlMatch = "%" + strings.ToLower(query) + "%"
+// 	}
+// 	err := DB.Model(texts).
+// 		Joins("JOIN source_texts on texts.id = source_texts.text_id").
+// 		Joins("JOIN sources on sources.id = source_texts.source_id").
+// 		Joins("JOIN user_sources on sources.id = user_sources.source_id").
+// 		Joins("JOIN users on user_sources.user_id = users.id AND users.name = ?", user).
+// 		Where(sqlWhere, sqlMatch).
+// 		Limit(limit).
+// 		Offset(offset).
+// 		Find(&texts).
+// 		Error
+// 	return texts, err
+// }

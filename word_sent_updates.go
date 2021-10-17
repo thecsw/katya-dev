@@ -7,15 +7,21 @@ import (
 )
 
 const (
+	// globalDeltaCacheKey is a small map key used in delta cache for globals
 	globalDeltaCacheKey = "g"
+	// deltaUpdateInterval is how frequently should we update deltas
 	deltaUpdateInterval = time.Minute
 )
 
 var (
+	// globalNumWordsDelta caches yet-to-be-updated deltas in global word count
 	globalNumWordsDelta = cache.New(cache.NoExpiration, cache.NoExpiration)
+	// globalNumSentsDelta caches yet-to-be-updated deltas in global sentences count
 	globalNumSentsDelta = cache.New(cache.NoExpiration, cache.NoExpiration)
 
+	// sourcesNumWordsDelta caches yet-to-be-updated deltas in sources' word count
 	sourcesNumWordsDelta = cache.New(cache.NoExpiration, cache.NoExpiration)
+	// sourcesNumSentsDelta caches yet-to-be-updated deltas in sources' sentences count
 	sourcesNumSentsDelta = cache.New(cache.NoExpiration, cache.NoExpiration)
 )
 
@@ -24,6 +30,7 @@ func updateGlobalWordSentsDeltas() {
 	for {
 		// Sleep for a minute
 		time.Sleep(deltaUpdateInterval)
+		// whether we should print an update message at the end or not
 		actuallyUpdated := false
 		//l("Starting updating the global words/sents count")
 		// Update the word count
@@ -59,6 +66,7 @@ func updateSourcesWordSentsDeltas() {
 	for {
 		// Sleep for a minute
 		time.Sleep(deltaUpdateInterval)
+		// whether we should print an update message at the end or not
 		actuallyUpdated := false
 		//l("Starting to update sources' words/sents count")
 		// Update the word count

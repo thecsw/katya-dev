@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// createSource creates a source for a user
 func createSource(user, link string) error {
 	userID, err := getUser(user, false)
 	if err != nil {
@@ -35,6 +36,7 @@ func createSource(user, link string) error {
 	return nil
 }
 
+// removeSource removes the user-link connection
 func removeSource(user, link string) error {
 	userID, err := getUser(user, false)
 	if err != nil {
@@ -47,6 +49,7 @@ func removeSource(user, link string) error {
 	return DB.Exec("DELETE FROM user_sources WHERE source_id = ? AND user_id = ?", source.ID, userID.ID).Error
 }
 
+// getSource returns the source object from database
 func getSource(source string, fill bool) (*Source, error) {
 	sourceObj := &Source{}
 	if ID, found := sourceToID.Get(source); found {
@@ -65,6 +68,7 @@ func getSource(source string, fill bool) (*Source, error) {
 	return sourceObj, nil
 }
 
+// isSource checks for a source's existence
 func isSource(name string) (bool, error) {
 	if _, found := sourceToID.Get(name); found {
 		return true, nil
@@ -74,6 +78,7 @@ func isSource(name string) (bool, error) {
 	return count != 0, err
 }
 
+// updateSourceWordNum updates source's number of words
 func updateSourceWordNum(url string, numWords uint) error {
 	return DB.Exec(
 		"UPDATE sources SET num_words = num_words + ? WHERE link = ?",
@@ -81,6 +86,7 @@ func updateSourceWordNum(url string, numWords uint) error {
 		Error
 }
 
+// updateSourceSentNum updates source's number of sentences
 func updateSourceSentNum(url string, numSents uint) error {
 	return DB.Exec(
 		"UPDATE sources SET num_sentences = num_sentences + ? WHERE link = ?",

@@ -13,16 +13,21 @@ import (
 )
 
 var (
-	attemptCooldown  = 14 * time.Minute
+	// attemptCooldown is how many times you have between bad logins
+	attemptCooldown = 14 * time.Minute
+	// badLoginAttempts caches users' bad login attempts
 	badLoginAttempts = cache.New(attemptCooldown, attemptCooldown)
 
+	// usernameRegexp is a regex that every username should follow
 	usernameRegexp = regexp.MustCompile(`^[-a-zA-Z0-9]{3,16}$`)
+	// passwordRegexp is a regex that every password should follow
 	passwordRegexp = regexp.MustCompile(`^[^ ]{2,32}$`)
 )
 
 // ContextKey is a type alias to string
 type ContextKey string
 
+// loggingMiddleware does a full validation AND authentication for a Basic Auth attempt
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ipAddr, err := extractIP(r)

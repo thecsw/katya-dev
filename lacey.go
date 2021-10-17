@@ -13,13 +13,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// genCrawlerName takes a user and their link and returns a *guaranteed*
+// unique name for a new crawler
 func genCrawlerName(user, link string) string {
 	return user + "-" + shaEncode(link)[:10]
 }
 
+// allocateCrawler actually tries to fully allocate and write a new crawler to disk
 func allocateCrawler(user, link string, onlySubpaths bool) (string, error) {
 	// Our name is going to be some UUID
 	name := genCrawlerName(user, link)
+
 	// Create params for logging purposes
 	thisParams := params{
 		"name":          name,
@@ -27,6 +31,7 @@ func allocateCrawler(user, link string, onlySubpaths bool) (string, error) {
 		"url":           link,
 		"only_subpaths": onlySubpaths,
 	}
+
 	// Check if a crawler already exists, if it doesn't,
 	// then create one and use it later to trigger it
 	crawlerExists, err := isCrawler(name)
@@ -34,6 +39,7 @@ func allocateCrawler(user, link string, onlySubpaths bool) (string, error) {
 		lerr("failed existence allocating", err, thisParams)
 		return "", errors.Wrap(err, "failed existence allocating")
 	}
+
 	// Create a crawler if one doesn't exist
 	if !crawlerExists {
 		err = createCrawler(name, user, link)
@@ -48,8 +54,11 @@ func allocateCrawler(user, link string, onlySubpaths bool) (string, error) {
 		lerr("bad parsing of the source", err, thisParams)
 		return "", errors.Wrap(err, "bad parsing of the source")
 	}
+
+	// Get the actual domain
 	domain := parsedURL.Host
 
+	// Write the scrapy python text file
 	err = writeNewClawer(name, domain, link, onlySubpaths)
 	if err != nil {
 		lerr("failed to write a crawler script", err, thisParams)
@@ -59,6 +68,7 @@ func allocateCrawler(user, link string, onlySubpaths bool) (string, error) {
 	return name, nil
 }
 
+// triggerCrawler actually triggers the saved crawler to start feeding Noor
 func triggerCrawler(user, link string, logOutput io.Writer) (string, error) {
 	// Our name is going to be some UUID
 	name := genCrawlerName(user, link)
@@ -107,6 +117,8 @@ func triggerCrawler(user, link string, logOutput io.Writer) (string, error) {
 	return name, nil
 }
 
+// writeNewClawer copies the template scrapy python script into our own
+// and updates its settings, like only subpaths or not
 func writeNewClawer(name, domain, url string, onlySubpaths bool) error {
 	myCrawler := templateCrawler
 

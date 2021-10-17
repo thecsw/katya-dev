@@ -7,13 +7,21 @@ import (
 )
 
 const (
-	HOST        = "katya.sandyuraz.com"
-	PORT        = 5432
-	DBNAME      = "sandy"
-	USER        = "sandy"
-	SSLMODE     = "verify-full"
-	SSLCERT     = "./tools/client/client.crt"
-	SSLKEY      = "./tools/client/client.key"
+	// HOST is the destination address of our DB
+	HOST = "katya.sandyuraz.com"
+	// PORT is the DB port that we have
+	PORT = 5432
+	// DBNAME is the database name of our DB (usually username)
+	DBNAME = "sandy"
+	// USER is the DB user we will be working as
+	USER = "sandy"
+	// SSLMODE dictates on how we check our SSL
+	SSLMODE = "verify-full"
+	// SSLCERT is the certificate CA signed for us
+	SSLCERT = "./tools/client/client.crt"
+	// SSLKEY is our private key to prove our identity
+	SSLKEY = "./tools/client/client.key"
+	// SSLROOTCERT is the certificate list of the ruling CA (self-CA)
 	SSLROOTCERT = "./tools/ca/ca.crt"
 )
 
@@ -29,10 +37,12 @@ var (
 	// // dsn to connect to Postgres.
 	dsn = "host=127.0.0.1 port=5432 user=sandy dbname=sandy"
 
-	// Couple of caches that we would use
+	// usernameToID maps a username to its DB ID
 	usernameToID = cache.New(cache.NoExpiration, cache.NoExpiration)
-	sourceToID   = cache.New(cache.NoExpiration, cache.NoExpiration)
-	crawlerToID  = cache.New(cache.NoExpiration, cache.NoExpiration)
+	// sourceToID maps source name to its DB ID
+	sourceToID = cache.New(cache.NoExpiration, cache.NoExpiration)
+	// crawlerToID maps crawler name to its DB ID
+	crawlerToID = cache.New(cache.NoExpiration, cache.NoExpiration)
 )
 
 // init opens the database.

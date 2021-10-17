@@ -43,3 +43,15 @@ func reverseString(what string) string {
 	// Convert back to UTF-8.
 	return string(rune)
 }
+
+// findTokenIndex maps a found index to a tokenized slice index
+func findTokenIndex(tokens []string, index int) int {
+	currentSum := 0
+	for i, v := range tokens {
+		if currentSum > index {
+			return i - 1
+		}
+		currentSum += len(v) + 1
+	}
+	return -1
+}

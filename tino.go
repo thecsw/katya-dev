@@ -9,22 +9,37 @@ import (
 	"github.com/pkg/errors"
 )
 
+// NoorPayload is what we get from our crawlers on every text submission
 type NoorPayload struct {
-	Name         string `json:"name"`
-	StartURL     string `json:"start"`
-	URL          string `json:"url"`
-	IP           string `json:"ip"`
-	Status       int    `json:"status"`
-	Original     string `json:"original"`
-	Text         string `json:"text"`
-	Shapes       string `json:"shapes"`
-	Tags         string `json:"tags"`
-	Nominatives  string `json:"nomins"`
-	Title        string `json:"title"`
-	NumWords     int    `json:"num_words"`
-	NumSentences int    `json:"num_sents"`
+	// Name is the name of our crawler
+	Name string `json:"name"`
+	// StartURL is the starting URL that crawler had
+	StartURL string `json:"start"`
+	// URL is the URL of this text submission
+	URL string `json:"url"`
+	// IP is the IP address that the URL is associated with
+	IP string `json:"ip"`
+	// Status is the HTTP response code we received
+	Status int `json:"status"`
+	// Title is the title of the source webpage
+	Title string `json:"title"`
+	// NumWords is the number of words in this source (no punctuations)
+	NumWords int `json:"num_words"`
+	// NumSentences is the number of sentences in this source
+	NumSentences int `json:"num_sents"`
+	// Original is the cleaned text crawler worked out
+	Original string `json:"original"`
+	// Text is the tokenized cleaned text SpaCy gave us
+	Text string `json:"text"`
+	// Shapes is the tokenized shapes data from SpaCy
+	Shapes string `json:"shapes"`
+	// Tags is the tokenized tags data from SpaCy
+	Tags string `json:"tags"`
+	// Nominatives is the tokenized nominatives data from SpaCy
+	Nominatives string `json:"nomins"`
 }
 
+// noorReceiver is used by crawlers to submit a new tagged and analyzed text
 func noorReceiver(w http.ResponseWriter, r *http.Request) {
 	noorKey := r.Header.Get("Authorization")
 	if noorKey != "noorkey" {
@@ -106,11 +121,15 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 	}, http.StatusOK, nil)
 }
 
+// StatusPayload is used by crawlers to report their status
 type StatusPayload struct {
-	Name   string `json:"name"` // The name of the spider
+	// Name is our crawler's name
+	Name string `json:"name"`
+	// Status is the most recent status of it
 	Status string `json:"status"`
 }
 
+// statusReceiver takes the input from crawlers' statuses
 func statusReceiver(w http.ResponseWriter, r *http.Request) {
 	noorKey := r.Header.Get("Authorization")
 	if noorKey != "noorkey" {
@@ -136,73 +155,7 @@ func statusReceiver(w http.ResponseWriter, r *http.Request) {
 	httpJSON(w, httpMessageReturn{"scrape status received"}, http.StatusOK, nil)
 }
 
-func findTokenIndex(tokens []string, index int) int {
-	currentSum := 0
-	for i, v := range tokens {
-		if currentSum > index {
-			return i - 1
-		}
-		currentSum += len(v) + 1
-	}
-	return -1
-}
-
-func userGetSources(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(ContextKey("user")).(User)
-	sources, err := getUserSources(user.Name)
-	if err != nil {
-		httpJSON(w, nil, http.StatusInternalServerError, errors.Wrap(err, "failed to retrieve sources"))
-		return
-	}
-	httpJSON(w, sources, http.StatusOK, nil)
-}
-
-func userCreateSource(w http.ResponseWriter, r *http.Request) {
-	payload := &crawlerActionPayload{}
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(payload)
-	if err != nil {
-		lerr("Failed decoding a create source payload", err, params{})
-		httpJSON(w, nil, http.StatusBadRequest, err)
-		return
-	}
-	user := r.Context().Value(ContextKey("user")).(User)
-	// If our link is ending with a slash, remove it
-	if payload.Link[len(payload.Link)-1] == '/' {
-		payload.Link = payload.Link[:len(payload.Link)-1]
-	}
-	err = createSource(user.Name, payload.Link)
-	if err != nil {
-		lerr("Failed creating a source in http", err, params{})
-		httpJSON(w, nil, http.StatusBadRequest, err)
-		return
-	}
-	httpJSON(w, httpMessageReturn{"source created"}, http.StatusOK, nil)
-}
-
-func userDeleteSource(w http.ResponseWriter, r *http.Request) {
-	payload := &crawlerActionPayload{}
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(payload)
-	if err != nil {
-		lerr("Failed decoding a create source payload", err, params{})
-		httpJSON(w, nil, http.StatusBadRequest, errors.Wrap(err, "bad request payload"))
-		return
-	}
-	user := r.Context().Value(ContextKey("user")).(User)
-	// If our link is ending with a slash, remove it
-	if payload.Link[len(payload.Link)-1] == '/' {
-		payload.Link = payload.Link[:len(payload.Link)-1]
-	}
-	err = removeSource(user.Name, payload.Link)
-	if err != nil {
-		lerr("Failed deleting a user source in http", err, params{})
-		httpJSON(w, nil, http.StatusBadRequest, err)
-		return
-	}
-	httpJSON(w, httpMessageReturn{"source deleted"}, http.StatusOK, nil)
-}
-
+// helloReceiver just sends hello through API
 func helloReceiver(w http.ResponseWriter, r *http.Request) {
 	httpJSON(w, httpMessageReturn{"hello, world"}, http.StatusOK, nil)
 }

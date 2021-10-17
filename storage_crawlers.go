@@ -2,6 +2,7 @@ package main
 
 import "github.com/patrickmn/go-cache"
 
+// createCrawler creates a crawler in the database
 func createCrawler(name, user, source string) error {
 	userObj, err := getUser(user, false)
 	if err != nil {
@@ -27,6 +28,7 @@ func createCrawler(name, user, source string) error {
 	return nil
 }
 
+// getCrawler returns a crawler from the database
 func getCrawler(name string, fill bool) (*Crawler, error) {
 	crawlerObj := &Crawler{}
 	if ID, found := crawlerToID.Get(name); found {
@@ -45,6 +47,7 @@ func getCrawler(name string, fill bool) (*Crawler, error) {
 	return crawlerObj, nil
 }
 
+// isCrawler checks for a crawler's existence in the database
 func isCrawler(name string) (bool, error) {
 	if _, found := crawlerToID.Get(name); found {
 		return true, nil

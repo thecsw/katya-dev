@@ -2,6 +2,7 @@ package main
 
 import "time"
 
+// createScrape creates a scrape in the database
 func createScrape(crawlerName string) error {
 	crawler, err := getCrawler(crawlerName, false)
 	if err != nil {
@@ -20,6 +21,7 @@ func createScrape(crawlerName string) error {
 	return nil
 }
 
+// finishScrape updates the crawler's latest scrape with an end and elapsed time
 func finishScrape(crawlerName string) error {
 	crawler, err := getCrawler(crawlerName, false)
 	if err != nil {
@@ -40,6 +42,7 @@ func finishScrape(crawlerName string) error {
 	return nil
 }
 
+// getLastScrape returns the last registered scrape of the given crawler
 func getLastScrape(crawlerName string) (*Scrape, error) {
 	crawler, err := getCrawler(crawlerName, false)
 	if err != nil {

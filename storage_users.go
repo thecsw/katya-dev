@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// createUser creates a user in the database
 func createUser(name, pass string) error {
 	found, err := isUser(name)
 	if found {
@@ -25,6 +26,7 @@ func createUser(name, pass string) error {
 	return nil
 }
 
+// getUser gets a user from the database by the username
 func getUser(name string, fill bool) (*User, error) {
 	user := &User{}
 	if ID, found := usernameToID.Get(name); found {
@@ -43,6 +45,7 @@ func getUser(name string, fill bool) (*User, error) {
 	return user, nil
 }
 
+// isUser check if a username exists in the system
 func isUser(name string) (bool, error) {
 	if _, found := usernameToID.Get(name); found {
 		return true, nil
@@ -52,6 +55,7 @@ func isUser(name string) (bool, error) {
 	return count != 0, err
 }
 
+// getUserSources returns user's sources associated with him
 func getUserSources(user string) ([]Source, error) {
 	sources := make([]Source, 0, 16)
 	err := DB.Model(sources).
