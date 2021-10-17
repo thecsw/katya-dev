@@ -132,6 +132,6 @@ func writeNewClawer(name, domain, url string, onlySubpaths bool) error {
 	return ioutil.WriteFile(
 		CRAWLERS_DIR+name+".py",
 		[]byte(myCrawler),
-		0644,
+		0600,
 	)
 }

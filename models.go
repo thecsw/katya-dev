@@ -7,9 +7,12 @@ import "gorm.io/gorm"
 type User struct {
 	gorm.Model `json:"-"`
 
-	Name     string `json:"name" gorm:"unique"`
+	// Name is the username
+	Name string `json:"name" gorm:"unique"`
+	// Password is the user's password (sha256 hashed)
 	Password string `json:"-"`
 
+	// User can have multiple sources, a source can have multiple users
 	Sources []*Source `gorm:"many2many:user_sources;" json:"-"`
 }
 
@@ -18,11 +21,18 @@ type User struct {
 type Source struct {
 	gorm.Model `json:"-"`
 
-	Link         string `json:"link" gorm:"unique"`
-	NumWords     uint   `json:"num_words"`
-	NumSentences uint   `json:"num_sents"`
+	// Link is the starting link associated with the source
+	Link string `json:"link" gorm:"unique"`
+	// NumWords is the number of words for the whole source
+	NumWords uint `json:"num_words"`
+	// NumSentences is the number of sentences for the whole source
+	NumSentences uint `json:"num_sents"`
 
+	// Each source has multiple texts and each text can be linked
+	// to from multiple different source (overlapping links)
 	Texts []*Text `gorm:"many2many:source_texts;" json:"-"`
+	// Each source can be connected to multiple users and each
+	// user can have multiple sources on their account
 	Users []*User `gorm:"many2many:user_sources;" json:"-"`
 }
 
@@ -31,9 +41,12 @@ type Source struct {
 type Crawler struct {
 	gorm.Model `json:"-"`
 
-	Name     string `json:"name" gorm:"unique"`
-	SourceID uint   `json:"source_id"`
-	UserID   uint   `json:"user_id"`
+	// Name is the name of the crawler
+	Name string `json:"name" gorm:"unique"`
+	// SourceID is the ID of the source its crawling
+	SourceID uint `json:"source_id"`
+	// UserID is the ID of the user that own the crawler
+	UserID uint `json:"user_id"`
 }
 
 // Scrape struct stores all the crawlers runs, only associated with a
@@ -41,17 +54,23 @@ type Crawler struct {
 type Scrape struct {
 	gorm.Model `json:"-"`
 
+	// CrawlerID is the crawler that scrape refers to
 	CrawlerID uint `json:"crawler_id"`
-	Start     uint `json:"start"`
-	Elapsed   uint `json:"elapsed"`
-	End       uint `json:"end"`
+	// Start is the UNIX UTC timestamp of when scrape started
+	Start uint `json:"start"`
+	// End is the UNIX UTC timestamp of when scrape finished
+	End uint `json:"end"`
+	// Elapsed is simply "end - start"
+	Elapsed uint `json:"elapsed"`
 }
 
 // Global struct gives us info about the whole corpus.
 type Global struct {
 	gorm.Model `json:"-"`
 
-	NumWords     uint `json:"num_words"`
+	// NumWords is the number of words across ALL texts
+	NumWords uint `json:"num_words"`
+	// NumSentences is the number of sentences across ALL texts
 	NumSentences uint `json:"num_sents"`
 }
 
@@ -61,17 +80,30 @@ type Global struct {
 type Text struct {
 	gorm.Model `json:"-"`
 
-	URL         string `json:"url" gorm:"unique"`
-	IP          string `json:"ip"`
-	Status      uint   `json:"status"`
-	Original    string `json:"original"`
-	Text        string `json:"text"`
-	Shapes      string `json:"shapes"`
-	Tags        string `json:"tags"`
+	// URL is the web resources where we extract text from
+	URL string `json:"url" gorm:"unique"`
+	// IP is the ip address that we pulled the text from
+	IP string `json:"ip"`
+	// Status is the HTTP return status code we got from URL
+	Status uint `json:"status"`
+	// Original is the cleaned text we pulled from the page
+	Original string `json:"original"`
+	// Text is the tokenized SpaCy original text (spaces around punct)
+	Text string `json:"text"`
+	// Shapes is the tokenized shapes from SpaCy
+	Shapes string `json:"shapes"`
+	// Tags is the tokenized text from SpaCy
+	Tags string `json:"tags"`
+	// Nominatives is the tokenized text of nominatives from SpaCy
 	Nominatives string `json:"nomins"`
-	Title       string `json:"title"`
-	NumWords    uint   `json:"num_words"`
-	NumSents    uint   `json:"num_sents"`
+	// Title is the title of the HTML webpage (extracted)
+	Title string `json:"title"`
+	// NumWords is the number of words (no punct) of the Text
+	NumWords uint `json:"num_words"`
+	// NumWords is the number of sentences of the Text
+	NumSents uint `json:"num_sents"`
 
+	// Text can be associated with multiple sources and a source
+	// can be associated with many different texts
 	Sources []*Source `gorm:"many2many:source_texts;" json:"-"`
 }
