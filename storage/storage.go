@@ -19,7 +19,7 @@ var (
 	crawlerToID = cache.New(cache.NoExpiration, cache.NoExpiration)
 )
 
-// init opens the database.
+// InitDB opens the database.
 func InitDB(dsn string) error {
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{

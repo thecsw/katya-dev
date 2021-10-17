@@ -39,7 +39,7 @@ const (
 	// DB_NAME is the database name of our DB (usually username)
 	DB_NAME = "sandy"
 	// DB_USER is the DB user we will be working as
-	DB_DB_USER = "sandy"
+	DB_USER = "sandy"
 	// DB_SSLMODE dictates on how we check our SSL
 	DB_SSLMODE = "verify-full"
 	// DB_SSLCERT is the certificate CA signed for us

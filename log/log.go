@@ -14,6 +14,8 @@ var (
 	// log is a global logrus instance.
 	log = logrus.New()
 
+	// DBLogger is the logger instance for our DB to prevent scam logging
+	// the default logger spits out too much onto the screen
 	DBLogger = logger.New(
 		stdlog.New(os.Stdout, "\r\n", stdlog.LstdFlags), // io writer
 		logger.Config{
