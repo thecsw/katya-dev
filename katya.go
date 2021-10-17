@@ -32,21 +32,21 @@ const (
 	// RESTClientKey is the location of HTTP router's private key
 	RESTClientKey string = "./certs/privkey.pem"
 
-	// HOST is the destination address of our DB
+	// DB_HOST is the destination address of our DB
 	DB_HOST = "katya.sandyuraz.com"
-	// PORT is the DB port that we have
+	// DB_PORT is the DB port that we have
 	DB_PORT = 5432
-	// DBNAME is the database name of our DB (usually username)
-	DB_DBNAME = "sandy"
-	// USER is the DB user we will be working as
-	DB_USER = "sandy"
-	// SSLMODE dictates on how we check our SSL
+	// DB_NAME is the database name of our DB (usually username)
+	DB_NAME = "sandy"
+	// DB_USER is the DB user we will be working as
+	DB_DB_USER = "sandy"
+	// DB_SSLMODE dictates on how we check our SSL
 	DB_SSLMODE = "verify-full"
-	// SSLCERT is the certificate CA signed for us
+	// DB_SSLCERT is the certificate CA signed for us
 	DB_SSLCERT = "./tools/client/client.crt"
-	// SSLKEY is our private key to prove our identity
+	// DB_SSLKEY is our private key to prove our identity
 	DB_SSLKEY = "./tools/client/client.key"
-	// SSLROOTCERT is the certificate list of the ruling CA (self-CA)
+	// DB_SSLROOTCERT is the certificate list of the ruling CA (self-CA)
 	DB_SSLROOTCERT = "./tools/ca/ca.crt"
 )
 
@@ -56,7 +56,7 @@ var (
 
 	// dsn = fmt.Sprintf(
 	// 	"host=%s port=%d user=%s dbname=%s sslmode=%s sslcert=%s sslkey=%s sslrootcert=%s",
-	// 	HOST, PORT, USER, DBNAME, SSLMODE, SSLCERT, SSLKEY, SSLROOTCERT,
+	// 	HOST, PORT, USER, NAME, SSLMODE, SSLCERT, SSLKEY, SSLROOTCERT,
 	// )
 
 	// // dsn to connect to Postgres.
