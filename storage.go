@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -27,16 +26,13 @@ var (
 	// DB is our global instance of *gorm.DB
 	DB *gorm.DB
 
-	dsn = fmt.Sprintf(
-		"host=%s port=%d user=%s dbname=%s sslmode=%s sslcert=%s sslkey=%s sslrootcert=%s",
-		HOST, PORT, USER, DBNAME, SSLMODE, SSLCERT, SSLKEY, SSLROOTCERT,
-	)
+	// dsn = fmt.Sprintf(
+	// 	"host=%s port=%d user=%s dbname=%s sslmode=%s sslcert=%s sslkey=%s sslrootcert=%s",
+	// 	HOST, PORT, USER, DBNAME, SSLMODE, SSLCERT, SSLKEY, SSLROOTCERT,
+	// )
 
 	// // dsn to connect to Postgres.
-	// dsn = fmt.Sprintf(
-	// 	"host=%s port=%d user=%s dbname=%s",
-	// 	HOST, PORT, USER, DBNAME,
-	// )
+	dsn = "host=127.0.0.1 port=5432 user=sandy dbname=sandy"
 
 	// Couple of caches that we would use
 	usernameToID = cache.New(cache.NoExpiration, cache.NoExpiration)
@@ -344,7 +340,11 @@ func createText(
 	url string,
 	ip string,
 	status uint,
+	original string,
 	text string,
+	shapes string,
+	tags string,
+	nomins string,
 	title string,
 	numWords uint,
 	numSents uint,
@@ -354,13 +354,18 @@ func createText(
 		return err
 	}
 	toAdd := &Text{
-		URL:      url,
-		IP:       ip,
-		Status:   status,
-		Text:     text,
-		Title:    title,
-		NumWords: numWords,
-		NumSents: numSents,
+		URL:         url,
+		IP:          ip,
+		Status:      status,
+		Original:    original,
+		Text:        text,
+		Shapes:      shapes,
+		Tags:        tags,
+		Nominatives: nomins,
+		Title:       title,
+		NumWords:    numWords,
+		NumSents:    numSents,
+		Sources:     []*Source{},
 	}
 	err = DB.
 		Model(sourceObj).
@@ -417,7 +422,53 @@ func findTexts(
 	return texts, err
 }
 
-func findTextsByUserID(
+var (
+	findByPart = map[string]func(uint, string, int, int, bool) ([]Text, error){
+		"text":   findTextsByUserID,
+		"shapes": findShapesByUserID,
+		"tags":   findTagsByUserID,
+		"nomins": findNominativesByUserID,
+	}
+)
+
+func findTextsByUserID(userID uint,
+	query string,
+	limit int,
+	offset int,
+	caseSensitive bool,
+) ([]Text, error) {
+	return findTextsPartsByUserID("texts.text", userID, query, limit, offset, caseSensitive)
+}
+
+func findShapesByUserID(userID uint,
+	query string,
+	limit int,
+	offset int,
+	caseSensitive bool,
+) ([]Text, error) {
+	return findTextsPartsByUserID("texts.shapes", userID, query, limit, offset, caseSensitive)
+}
+
+func findTagsByUserID(userID uint,
+	query string,
+	limit int,
+	offset int,
+	caseSensitive bool,
+) ([]Text, error) {
+	return findTextsPartsByUserID("texts.tags", userID, query, limit, offset, caseSensitive)
+}
+
+func findNominativesByUserID(userID uint,
+	query string,
+	limit int,
+	offset int,
+	caseSensitive bool,
+) ([]Text, error) {
+	return findTextsPartsByUserID("texts.nominatives", userID, query, limit, offset, caseSensitive)
+}
+
+func findTextsPartsByUserID(
+	part string,
 	userID uint,
 	query string,
 	limit int,
@@ -425,16 +476,16 @@ func findTextsByUserID(
 	caseSensitive bool,
 ) ([]Text, error) {
 	texts := make([]Text, 0, limit)
-	sqlWhere := "texts.text LIKE ?"
+	sqlWhere := part + " LIKE ?"
 	sqlMatch := "%" + query + "%"
 	if !caseSensitive {
-		sqlWhere = "lower(texts.text) LIKE ?"
+		sqlWhere = "lower(" + part + ") LIKE ?"
 		sqlMatch = "%" + strings.ToLower(query) + "%"
 	}
 	err := DB.Model(texts).
 		Joins("INNER JOIN source_texts on texts.id = source_texts.text_id").
 		Joins("INNER JOIN sources on sources.id = source_texts.source_id").
-		Joins("INERR JOIN user_sources on sources.id = user_sources.source_id").
+		Joins("INNER JOIN user_sources on sources.id = user_sources.source_id").
 		Joins("INNER JOIN users on user_sources.user_id = users.id AND users.id = ?", userID).
 		Where(sqlWhere, sqlMatch).
 		Limit(limit).
@@ -444,6 +495,7 @@ func findTextsByUserID(
 	return texts, err
 }
 
+// max returns the max of its arguments
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -451,6 +503,7 @@ func max(a, b int) int {
 	return b
 }
 
+// min returns the min of its arguments
 func min(a, b int) int {
 	if a < b {
 		return a

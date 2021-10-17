@@ -15,7 +15,8 @@ from cleantext import clean
 
 # from icecream import ic
 # import langdetect
-import nltk
+#import nltk
+import spacy
 
 # URL to submit processed strings
 URL_BASE = "https://127.0.0.1:32000"
@@ -26,6 +27,8 @@ URL_STATUS = URL_BASE + "/status"
 s = requests.session()
 s.verify = False
 
+#nlp_ru = spacy.load('ru_core_news_sm')
+nlp_ru = spacy.load('ru_core_news_lg')
 
 def headers(spiderName):
     return {
@@ -90,14 +93,28 @@ class NoorPipeline:
         text = ItemAdapter(item).get("text")
         clean_text = clean_raw_html(str(text))
 
-        word_tokens = nltk.word_tokenize(clean_text, language="russian")
-        num_words = len(word_tokens)
+        doc = nlp_ru(clean_text)
+        
+        #word_tokens = nltk.word_tokenize(clean_text, language="russian")
+        #num_words = len(word_tokens)
 
-        sent_tokens = nltk.sent_tokenize(clean_text, language="russian")
-        num_sents = len(sent_tokens)
+        #sent_tokens = nltk.sent_tokenize(clean_text, language="russian")
+        #num_sents = len(sent_tokens)
+
+        num_sents = len([sent for sent in doc.sents])
+        num_words = len([True for token in doc if token.is_alpha])
+
+        shapes = " ".join(([token.shape_ for token in doc]))
+        tags = " ".join(([token.tag_ for token in doc]))
+        nomin = " ".join(([token.lemma_ for token in doc]))
+        to_send_text = " ".join(([token.text for token in doc]))
 
         to_return = {
-            "text": clean_text,
+            "original": clean_text,
+            "text": to_send_text,
+            "shapes": shapes,
+            "tags": tags,
+            "nomins": nomin,
             "title": ItemAdapter(item).get("title"),
             "ip": ItemAdapter(item).get("ip"),
             "url": ItemAdapter(item).get("url"),

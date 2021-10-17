@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	searchResultWidth = 200
+	searchResultWidth = 37
 )
 
 var (
@@ -32,7 +32,11 @@ type NoorPayload struct {
 	URL          string `json:"url"`
 	IP           string `json:"ip"`
 	Status       int    `json:"status"`
+	Original     string `json:"original"`
 	Text         string `json:"text"`
+	Shapes       string `json:"shapes"`
+	Tags         string `json:"tags"`
+	Nominatives  string `json:"nomins"`
 	Title        string `json:"title"`
 	NumWords     int    `json:"num_words"`
 	NumSentences int    `json:"num_sents"`
@@ -79,7 +83,11 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 		payload.URL,
 		payload.IP,
 		uint(payload.Status),
+		payload.Original,
 		payload.Text,
+		payload.Shapes,
+		payload.Tags,
+		payload.Nominatives,
 		payload.Title,
 		uint(payload.NumWords),
 		uint(payload.NumSentences),
@@ -236,52 +244,136 @@ type SearchResult struct {
 }
 
 func textSearcher(w http.ResponseWriter, r *http.Request) {
+	// Get the actual search query, this is mission critical
 	query := r.URL.Query().Get("query")
 	if query == "" {
 		httpJSON(w, nil, http.StatusBadRequest, errors.New("bad query"))
 		return
 	}
-
+	// grab the user context from the middleware
 	user := r.Context().Value(ContextKey("user")).(User)
 
+	// partLookup specifies what part of the text is matched against the query
+	// possible options are:
+	//   - text: actual simple extracted text that's tokenized (spaces around PUNCT)
+	//   - tags: tagged results, allows searching for like "NOUN PART VERB VERB"
+	//   - shapes: just shapes like "Xxx xxxx - xx xxxx - x ?" -> "Это всемирную - то историю - с ?"
+	//   - nomins: nominatives will take in a nominative case of a word and search for all its
+	//             conjugations, such that a search for a nominative word of "полюбить" will
+	//             automatically search for "полюбил" or "полюбить" or "полюбили". Pretty coll!
+	partLookup := r.URL.Query().Get("part")
+	// whether we should serve a CSV file instead of a JSON
 	useCSV := r.URL.Query().Get("csv")
+	// how many results do we want to show
 	limitString := r.URL.Query().Get("limit")
+	// the offset to pass to the DB for results
+	offsetString := r.URL.Query().Get("offset")
+	// whether we should care for casing in DB string match
 	caseSensitive := r.URL.Query().Get("case_sensitive")
 
+	// Fallback to a by-text lookup if not given or bad
+	if _, ok := findByPart[partLookup]; !ok {
+		partLookup = "text"
+	}
+
+	// Convert limit to int, fallback to 100
 	limit, err := strconv.Atoi(limitString)
-	if err != nil {
+	if err != nil || limit > 100 || limit < 0 {
 		limit = 100
 	}
-	resultsDB, err := findTextsByUserID(user.ID, query, limit, 0, caseSensitive == "1")
+
+	// Convert offset to int, fallback to 0
+	offset, err := strconv.Atoi(offsetString)
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	// Find all the matches from the database by doing a string submatch search
+	resultsDB, err := findByPart[partLookup](user.ID, query, limit, offset, caseSensitive == "1")
 	if err != nil {
 		httpJSON(w, nil, http.StatusInternalServerError, err)
 		return
 	}
 
+	// Create the final object we will be serving through the API
 	results := make([]SearchResult, 0, len(resultsDB))
 	for _, v := range resultsDB {
-		// Try to find all indices of this substring in the text
-		matches := indexStringMany(v.Text, query, caseSensitive == "1")
+
+		// This map allows us to dynamically choose the text part that we used for DB string search
+		whatToSearchIn := map[string]string{
+			"text":   v.Text,
+			"shapes": v.Shapes,
+			"tags":   v.Tags,
+			"nomins": v.Nominatives,
+		}
+
+		// Try to find all indices of this substring in the text to later map it to token indices
+		matches := indexStringMany(whatToSearchIn[partLookup], query, caseSensitive == "1")
+
+		// If there are no matches found (DB lied???) then we skip this
+		if len(matches) < 1 {
+			continue
+		}
+
+		// Split the text sections into the actual token slice
+		textSplit := strings.Split(v.Text, " ")
+		tagsSplit := strings.Split(v.Tags, " ")
+		shapesSplit := strings.Split(v.Shapes, " ")
+		nominativesSplit := strings.Split(v.Nominatives, " ")
+
+		// File every match in the found text in its own result case
 		for _, index := range matches {
-			if index == 0 {
+			// If we hit a bad index, skip and continue
+			if index < 1 {
 				continue
 			}
-			// Make both indices divisible by 2, so we can grab
-			// 2-byte unicode values as well, without slicing
-			searchWidth := searchResultWidth
 
-			leftCrit := max(0, index-searchWidth)
-			leftIndex := strings.IndexRune(v.Text[leftCrit:index], ' ')
-			left := max(leftCrit, leftIndex+leftCrit)
+			// this maps what token split we will be using for mapping the index to token index
+			whereToFindTheTokenIndex := map[string][]string{
+				"text":   textSplit,
+				"shapes": shapesSplit,
+				"tags":   tagsSplit,
+				"nomins": nominativesSplit,
+			}
 
-			rightCrit := min(len(v.Text), index+len(query)+searchWidth)
-			rightIndex := strings.IndexRune(v.Text[rightCrit:], ' ')
-			right := max(rightCrit, rightIndex+rightCrit)
+			// Map the actual found query's index into the token index
+			resultsSplitLeftIndex := findTokenIndex(whereToFindTheTokenIndex[partLookup], index)
+			resultsSplitRightIndex := findTokenIndex(whereToFindTheTokenIndex[partLookup], index+len(query)) + 1
 
-			leftText := v.Text[left+1 : index]
-			centerText := v.Text[index : index+len(query)]
-			rightText := v.Text[index+len(query) : right]
+			// Find the indices that we will split the tokens from left to right
+			leftSplitLeftIndex := max(0, resultsSplitLeftIndex-searchResultWidth)
+			leftSplitRightIndex := resultsSplitLeftIndex
+			centerSplitLeftIndex := resultsSplitLeftIndex
+			centerSplitRightIndex := resultsSplitRightIndex
+			rightSplitLeftIndex := resultsSplitRightIndex
+			rightSplitRightIndex := min(len(textSplit), resultsSplitRightIndex+searchResultWidth)
 
+			// Split the text tokens into the results section
+			leftTextSplit := textSplit[leftSplitLeftIndex:leftSplitRightIndex]
+			centerTextSplit := textSplit[centerSplitLeftIndex:centerSplitRightIndex]
+			rightTextSplit := textSplit[rightSplitLeftIndex:rightSplitRightIndex]
+
+			// // Split the tags tokens into the results section
+			// leftTagsSplit := tagsSplit[leftSplitLeftIndex:leftSplitRightIndex]
+			// centerTagsSplit := tagsSplit[centerSplitLeftIndex:centerSplitRightIndex]
+			// rightTagsSplit := tagsSplit[rightSplitLeftIndex:rightSplitRightIndex]
+
+			// // Split the shapes tokens into the results section
+			// leftShapesSplit := shapesSplit[leftSplitLeftIndex:leftSplitRightIndex]
+			// centerShapesSplit := shapesSplit[centerSplitLeftIndex:centerSplitRightIndex]
+			// rightShapesSplit := shapesSplit[rightSplitLeftIndex:rightSplitRightIndex]
+
+			// // Split the nominative tokens into the results section
+			// leftNominativesSplit := nominativesSplit[leftSplitLeftIndex:leftSplitRightIndex]
+			// centerNominativesSplit := nominativesSplit[centerSplitLeftIndex:centerSplitRightIndex]
+			// rightNominativesSplit := nominativesSplit[rightSplitLeftIndex:rightSplitRightIndex]
+
+			// Join the tokens into the actual representable state for the user
+			leftText := strings.Join(leftTextSplit, " ")
+			centerText := strings.Join(centerTextSplit, " ")
+			rightText := strings.Join(rightTextSplit, " ")
+
+			// Create the object that we will be serving
 			toAppend := SearchResult{
 				LeftReverse:   reverseString(leftText),
 				Left:          leftText,
@@ -292,15 +384,30 @@ func textSearcher(w http.ResponseWriter, r *http.Request) {
 				Title:         v.Title,
 			}
 
+			// Append it to the final results
 			results = append(results, toAppend)
 		}
 	}
 
+	// Override the serving into the CSV serving function
 	if useCSV == "1" {
 		httpCSV(w, results, http.StatusOK)
 		return
 	}
+
+	// Fallback to the default JSON return
 	httpJSON(w, results, http.StatusOK, nil)
+}
+
+func findTokenIndex(tokens []string, index int) int {
+	currentSum := 0
+	for i, v := range tokens {
+		if currentSum > index {
+			return i - 1
+		}
+		currentSum += len(v) + 1
+	}
+	return -1
 }
 
 type crawlerActionPayload struct {

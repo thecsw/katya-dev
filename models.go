@@ -61,13 +61,17 @@ type Global struct {
 type Text struct {
 	gorm.Model `json:"-"`
 
-	URL      string `json:"url" gorm:"unique"`
-	IP       string `json:"ip"`
-	Status   uint   `json:"status"`
-	Text     string `json:"text"`
-	Title    string `json:"title"`
-	NumWords uint   `json:"num_words"`
-	NumSents uint   `json:"num_sents"`
+	URL         string `json:"url" gorm:"unique"`
+	IP          string `json:"ip"`
+	Status      uint   `json:"status"`
+	Original    string `json:"original"`
+	Text        string `json:"text"`
+	Shapes      string `json:"shapes"`
+	Tags        string `json:"tags"`
+	Nominatives string `json:"nomins"`
+	Title       string `json:"title"`
+	NumWords    uint   `json:"num_words"`
+	NumSents    uint   `json:"num_sents"`
 
 	Sources []*Source `gorm:"many2many:source_texts;" json:"-"`
 }
