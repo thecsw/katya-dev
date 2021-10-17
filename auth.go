@@ -2,14 +2,8 @@ package main
 
 import (
 	"context"
-	"crypto/sha512"
 	"encoding/base64"
-	"encoding/csv"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -24,12 +18,9 @@ var (
 
 	usernameRegexp = regexp.MustCompile(`^[-a-zA-Z0-9]{3,16}$`)
 	passwordRegexp = regexp.MustCompile(`^[^ ]{2,32}$`)
-
-	csvHeader = []string{
-		"reverse left", "reverse center", "left", "center", "right", "source", "title",
-	}
 )
 
+// ContextKey is a type alias to string
 type ContextKey string
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -83,70 +74,4 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		newContext := context.WithValue(context.TODO(), ContextKey("user"), *foundUser)
 		next.ServeHTTP(w, r.WithContext(newContext))
 	})
-}
-
-// extractIP makes sure the request has a proper request IP.
-func extractIP(r *http.Request) (string, error) {
-	// if not a proper remote addr, return empty
-	if !strings.ContainsRune(r.RemoteAddr, ':') {
-		return "", errors.New("lol")
-	}
-	ipAddr, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil || ipAddr == "" {
-		return "", errors.New("request has failed origin validation, retry")
-	}
-	return ipAddr, nil
-}
-
-// shaEncode return SHA512 sum of a string.
-func shaEncode(input string) string {
-	sha := sha512.Sum512([]byte(input))
-	return hex.EncodeToString(sha[:])
-}
-
-// verifyAuth verifies that the credentials are OK
-func verifyAuth(w http.ResponseWriter, r *http.Request) {
-	httpJSON(w, httpMessageReturn{Message: "OK"}, http.StatusOK, nil)
-}
-
-// httpJSON is a generic http object passer.
-func httpJSON(w http.ResponseWriter, data interface{}, status int, err error) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(status)
-	if err != nil && status >= 400 && status < 600 {
-		json.NewEncoder(w).Encode(httpErrorReturn{Error: err.Error()})
-		return
-	}
-	json.NewEncoder(w).Encode(data)
-}
-
-func httpCSV(w http.ResponseWriter, results []SearchResult, status int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(status)
-	toWrite := make([][]string, 0, len(results)+1)
-	toWrite = append(toWrite, csvHeader)
-	for _, v := range results {
-		toWrite = append(toWrite, []string{
-			v.LeftReverse, v.CenterReverse, v.Left, v.Center, v.Right, v.Source, v.Title,
-		})
-	}
-	csv.NewWriter(w).WriteAll(toWrite)
-}
-
-// httpHTML sends a good HTML response.
-func httpHTML(w http.ResponseWriter, data interface{}) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, data)
-}
-
-// httpMessageReturn defines a generic HTTP return message.
-type httpMessageReturn struct {
-	Message interface{} `json:"message"`
-}
-
-// httpErrorReturn defines a generic HTTP error message.
-type httpErrorReturn struct {
-	Error string `json:"error"`
 }

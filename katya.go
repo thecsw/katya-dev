@@ -101,7 +101,7 @@ func main() {
 	subRouter := myRouter.PathPrefix("/api").Subrouter()
 
 	subRouter.HandleFunc("/auth", verifyAuth).Methods(http.MethodPost)
-	subRouter.HandleFunc("/find", textSearcher).Methods(http.MethodGet)
+	subRouter.HandleFunc("/find", findQueryInTexts).Methods(http.MethodGet)
 	subRouter.HandleFunc("/trigger", crawlerRunner).Methods(http.MethodPost)
 	subRouter.HandleFunc("/sources", userGetSources).Methods(http.MethodGet)
 	subRouter.HandleFunc("/allocate", crawlerCreator).Methods(http.MethodPost)

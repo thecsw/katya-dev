@@ -3,7 +3,6 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
-
 # useful for handling different item types with a single interface
 import json
 import requests
@@ -27,6 +26,9 @@ URL_STATUS = URL_BASE + "/status"
 s = requests.session()
 s.verify = False
 
+# ---------- RUSSIAN SPACY -------------
+# Check here: https://spacy.io/models/ru
+# --------------------------------------
 #nlp_ru = spacy.load('ru_core_news_sm')
 nlp_ru = spacy.load('ru_core_news_lg')
 
