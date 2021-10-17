@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/patrickmn/go-cache"
 	"gorm.io/gorm"
 )
@@ -31,7 +29,6 @@ func createSource(user, link string) error {
 			return err
 		}
 	}
-	fmt.Println("toadd:", toAdd.ID, "| userID:", userID.ID)
 	err = DB.Exec("INSERT into user_sources (source_id, user_id) values (?, ?)", toAdd.ID, userID.ID).Error
 	if err != nil {
 		lerr("Failed to append a source", err, params{"user": user, "link": link})
