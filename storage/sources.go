@@ -1,6 +1,9 @@
 package storage
 
 import (
+	"errors"
+	"strings"
+
 	"github.com/patrickmn/go-cache"
 	"github.com/thecsw/katya/log"
 	"gorm.io/gorm"
@@ -32,6 +35,9 @@ func CreateSource(user, link string) error {
 	}
 	err = DB.Exec("INSERT into user_sources (source_id, user_id) values (?, ?)", toAdd.ID, userID.ID).Error
 	if err != nil {
+		if strings.Contains(err.Error(), duplicateKeyViolatedError) {
+			err = errors.New("this source is already link to the user")
+		}
 		log.Error("Failed to append a source", err, log.Params{"user": user, "link": link})
 		return err
 	}
