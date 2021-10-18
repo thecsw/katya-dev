@@ -28,7 +28,7 @@ const (
 	SCRAPY_DIR = "./chelsea/"
 
 	// RESTClientCert is the location of HTTP router's certificate
-	RESTClientCert string = "./certs/cert.pem"
+	RESTClientCert string = "./certs/fullchain.pem"
 	// RESTClientKey is the location of HTTP router's private key
 	RESTClientKey string = "./certs/privkey.pem"
 
@@ -148,38 +148,17 @@ func main() {
 
 	// Declare and define our HTTP handler
 	log.Info("Configuring the HTTP router")
-	// corsOptions := cors.New(cors.Options{
-	// 	AllowedOrigins:     []string{"https://sandyuraz.com"},
-	// 	AllowedMethods:     []string{http.MethodPost, http.MethodGet, http.MethodDelete},
-	// 	AllowedHeaders:     []string{"Authorization", "Content-Type", "Access-Control-Allow-Methods"},
-	// 	ExposedHeaders:     []string{},
-	// 	MaxAge:             0,
-	// 	AllowCredentials:   true,
-	// 	OptionsPassthrough: false,
-	// 	Debug:              false,
-	// })
-	// handler := corsOptions.Handler(myRouter)
-	// srv := &http.Server{
-	// 	Handler: handler,
-	// 	Addr:    LISTEN_ADDRESS,
-	// 	// Good practice: enforce timeouts for servers you create!
-	// 	WriteTimeout: 15 * time.Second,
-	// 	ReadTimeout:  15 * time.Second,
-	// 	IdleTimeout:  60 * time.Second,
-	// }
-	// // Fire up the router
-	// go func() {
-	// 	// if err := srv.ListenAndServe(); err != nil {
-	// 	// 	log.Println(err)
-	// 	// }
-	// 	if err := srv.ListenAndServeTLS(RESTClientCert, RESTClientKey); err != nil {
-	// 		log.Error("Failed to fire up the router", err, log.Params{})
-	// 	}
-	// }()
-	// log.Info("Started the HTTP router")
-
-	//OLD SERVER
-	handler := cors.Default().Handler(myRouter)
+	corsOptions := cors.New(cors.Options{
+		AllowedOrigins:     []string{"https://sandyuraz.com", "https://katya-kappa.vercel.app"},
+		AllowedMethods:     []string{http.MethodPost, http.MethodGet, http.MethodDelete},
+		AllowedHeaders:     []string{"Authorization", "Content-Type", "Access-Control-Allow-Methods"},
+		ExposedHeaders:     []string{},
+		MaxAge:             0,
+		AllowCredentials:   true,
+		OptionsPassthrough: false,
+		Debug:              false,
+	})
+	handler := corsOptions.Handler(myRouter)
 	srv := &http.Server{
 		Handler: handler,
 		Addr:    LISTEN_ADDRESS,
@@ -188,6 +167,27 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+	// Fire up the router
+	go func() {
+		// if err := srv.ListenAndServe(); err != nil {
+		// 	log.Println(err)
+		// }
+		if err := srv.ListenAndServeTLS(RESTClientCert, RESTClientKey); err != nil {
+			log.Error("Failed to fire up the router", err, log.Params{})
+		}
+	}()
+	log.Info("Started the HTTP router")
+
+	//OLD SERVER
+	// handler := cors.Default().Handler(myRouter)
+	// srv := &http.Server{
+	// 	Handler: handler,
+	// 	Addr:    LISTEN_ADDRESS,
+	// 	// Good practice: enforce timeouts for servers you create!
+	// 	WriteTimeout: 15 * time.Second,
+	// 	ReadTimeout:  15 * time.Second,
+	// 	IdleTimeout:  60 * time.Second,
+	// }
 	// Fire up the router
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
