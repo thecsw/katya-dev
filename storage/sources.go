@@ -102,3 +102,14 @@ func UpdateSourceSentNum(url string, numSents uint) error {
 		numSents, url).
 		Error
 }
+
+// getSourcesTexts returns all texts of a given source
+func getSourcesTexts(sourceID uint) ([]Text, error) {
+	texts := make([]Text, 0, 100)
+	err := DB.Model(texts).
+		Joins("INNER JOIN source_texts on texts.id = source_texts.text_id").
+		Joins("INNER JOIN sources on sources.id = source_texts.source_id AND sources.id = ?", sourceID).
+		Find(&texts).
+		Error
+	return texts, err
+}

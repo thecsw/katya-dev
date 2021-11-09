@@ -1,10 +1,11 @@
 package main
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/thecsw/katya/storage"
 	"github.com/thecsw/katya/utils"
@@ -186,10 +187,29 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 
 	// Override the serving into the CSV serving function
 	if useCSV == "1" {
-		httpCSV(w, results, http.StatusOK)
+		httpCSVFindResults(w, results, http.StatusOK)
 		return
 	}
 
 	// Fallback to the default JSON return
 	httpJSON(w, results, http.StatusOK, nil)
+}
+
+func frequencyFinder(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("query")
+	if query == "" {
+		httpJSON(w, nil, http.StatusBadRequest, errors.New("bad query"))
+		return
+	}
+	sourceID, err := strconv.Atoi(query)
+	if err != nil {
+		httpJSON(w, nil, http.StatusBadRequest, errors.Wrap(err, "bad conversion"))
+		return
+	}
+	result, err := storage.FindTheMostFrequentWords(uint(sourceID))
+	if err != nil {
+		httpJSON(w, nil, http.StatusInternalServerError, errors.Wrap(err, "oops"))
+		return
+	}
+	httpCSVFreqResults(w, result, http.StatusOK)
 }

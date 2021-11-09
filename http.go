@@ -5,12 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
+	"strconv"
 )
 
 var (
 	// csvHeader is the CSV header when we serve a CSV file
-	csvHeader = []string{
-		"reverse left", "reverse center", "left", "center", "right", "source", "title",
+	csvHeaders = map[string][]string{
+		"normal": []string{
+			"reverse left", "reverse center",
+			"left", "center", "right", "source", "title"},
+		"freq": []string{"word", "hits"},
 	}
 )
 
@@ -24,17 +29,47 @@ type httpErrorReturn struct {
 	Error string `json:"error"`
 }
 
-// httpCSV sends the results of SearchResult in a CSV formatted string
-func httpCSV(w http.ResponseWriter, results []SearchResult, status int) {
+// httpCSVFindResults sends the results of SearchResult in a CSV formatted string
+func httpCSVFindResults(w http.ResponseWriter, results []SearchResult, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
 	toWrite := make([][]string, 0, len(results)+1)
-	toWrite = append(toWrite, csvHeader)
+	toWrite = append(toWrite, csvHeaders["normal"])
 	for _, v := range results {
 		toWrite = append(toWrite, []string{
 			v.LeftReverse, v.CenterReverse, v.Left, v.Center, v.Right, v.Source, v.Title,
 		})
+	}
+	csv.NewWriter(w).WriteAll(toWrite)
+}
+
+type Pair struct {
+	Key   string
+	Value uint
+}
+
+type PairList []Pair
+
+func (p PairList) Len() int           { return len(p) }
+func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p PairList) Less(i, j int) bool { return p[i].Value > p[j].Value }
+
+func httpCSVFreqResults(w http.ResponseWriter, results map[string]uint, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(status)
+	toWrite := make([][]string, 0, len(results)+1)
+	toWrite = append(toWrite, csvHeaders["freq"])
+	p := make(PairList, len(results))
+	i := 0
+	for k, v := range results {
+		p[i] = Pair{k, v}
+		i++
+	}
+	sort.Sort(p)
+	for _, v := range p {
+		toWrite = append(toWrite, []string{v.Key, strconv.FormatUint(uint64(v.Value), 10)})
 	}
 	csv.NewWriter(w).WriteAll(toWrite)
 }

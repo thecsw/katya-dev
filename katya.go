@@ -132,6 +132,7 @@ func main() {
 
 	subRouter.HandleFunc("/auth", verifyAuth).Methods(http.MethodPost)
 	subRouter.HandleFunc("/find", findQueryInTexts).Methods(http.MethodGet)
+	subRouter.HandleFunc("/freqs", frequencyFinder).Methods(http.MethodGet)
 	subRouter.HandleFunc("/trigger", crawlerRunner).Methods(http.MethodPost)
 	subRouter.HandleFunc("/sources", userGetSources).Methods(http.MethodGet)
 	subRouter.HandleFunc("/allocate", crawlerCreator).Methods(http.MethodPost)
@@ -176,7 +177,7 @@ func main() {
 			log.Error("Failed to fire up the router", err, log.Params{})
 		}
 	}()
-	log.Info("Started the HTTP router")
+	log.Info("Started the HTTP router, port: " + LISTEN_ADDRESS)
 
 	//OLD SERVER
 	// handler := cors.Default().Handler(myRouter)
@@ -188,12 +189,12 @@ func main() {
 	// 	ReadTimeout:  15 * time.Second,
 	// 	IdleTimeout:  60 * time.Second,
 	// }
-	// Fire up the router
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			log.Info(err)
-		}
-	}()
+	// //Fire up the router
+	// go func() {
+	// 	if err := srv.ListenAndServe(); err != nil {
+	// 		log.Info(err)
+	// 	}
+	// }()
 
 	// Listen to SIGINT and other shutdown signals
 	c := make(chan os.Signal, 1)
