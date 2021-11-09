@@ -123,6 +123,7 @@ func main() {
 
 	log.Info("Creating our HTTP (API) router")
 	myRouter := mux.NewRouter()
+	myRouter.Use(basicMiddleware)
 
 	myRouter.HandleFunc("/", helloReceiver).Methods(http.MethodGet)
 	myRouter.HandleFunc("/noor", noorReceiver).Methods(http.MethodPost)

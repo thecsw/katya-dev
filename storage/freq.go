@@ -8,8 +8,12 @@ import (
 
 // FindTheMostFrequentWords returns a map of all standard tokens with
 // the number of times they appeared within texts of a given source
-func FindTheMostFrequentWords(sourceID uint) (map[string]uint, error) {
-	texts, err := getSourcesTexts(sourceID)
+func FindTheMostFrequentWords(sourceURL string) (map[string]uint, error) {
+	source, err := GetSource(sourceURL, false)
+	if err != nil || source.ID == 0 {
+		return nil, errors.Wrap(err, "failed mapping source to ID")
+	}
+	texts, err := getSourcesTexts(source.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't retrieve source texts")
 	}

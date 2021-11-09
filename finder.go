@@ -195,18 +195,14 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 	httpJSON(w, results, http.StatusOK, nil)
 }
 
+// frequencyFinder returns a word frequency table for a given source
 func frequencyFinder(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("query")
-	if query == "" {
+	source := r.URL.Query().Get("source")
+	if source == "" {
 		httpJSON(w, nil, http.StatusBadRequest, errors.New("bad query"))
 		return
 	}
-	sourceID, err := strconv.Atoi(query)
-	if err != nil {
-		httpJSON(w, nil, http.StatusBadRequest, errors.Wrap(err, "bad conversion"))
-		return
-	}
-	result, err := storage.FindTheMostFrequentWords(uint(sourceID))
+	result, err := storage.FindTheMostFrequentWords(source)
 	if err != nil {
 		httpJSON(w, nil, http.StatusInternalServerError, errors.Wrap(err, "oops"))
 		return
