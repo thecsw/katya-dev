@@ -54,13 +54,13 @@ var (
 	//go:embed chelsea/chelsea/spiders/template.py
 	templateCrawler string
 
-	// dsn = fmt.Sprintf(
-	// 	"host=%s port=%d user=%s dbname=%s sslmode=%s sslcert=%s sslkey=%s sslrootcert=%s",
-	// 	HOST, PORT, USER, NAME, SSLMODE, SSLCERT, SSLKEY, SSLROOTCERT,
-	// )
+	dsn = fmt.Sprintf(
+		"host=%s port=%d user=%s dbname=%s sslmode=%s sslcert=%s sslkey=%s sslrootcert=%s",
+		DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_SSLMODE, DB_SSLCERT, DB_SSLKEY, DB_SSLROOTCERT,
+	)
 
-	// // dsn to connect to Postgres.
-	dsn = "host=127.0.0.1 port=5432 user=sandy dbname=sandy"
+	// dsn to connect to Postgres.
+	//dsn = "host=127.0.0.1 port=5432 user=sandy dbname=sandy"
 )
 
 func main() {
