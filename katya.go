@@ -133,7 +133,7 @@ func main() {
 	myRouter.HandleFunc("/noor", noorReceiver).Methods(http.MethodPost)
 	myRouter.HandleFunc("/status", statusReceiver).Methods(http.MethodPost)
 
-	subRouter := myRouter.PathPrefix("/api").Subrouter()
+	subRouter := myRouter.PathPrefix("").Subrouter()
 
 	subRouter.HandleFunc("/auth", verifyAuth).Methods(http.MethodPost)
 	subRouter.HandleFunc("/find", findQueryInTexts).Methods(http.MethodGet)
