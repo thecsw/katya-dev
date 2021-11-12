@@ -117,6 +117,10 @@ func main() {
 	go updateGlobalWordSentsDeltas()
 	go updateSourcesWordSentsDeltas()
 
+	// Loading stopwords
+	log.Info("Loading stopwords")
+	loadStopwords()
+
 	// +-------------------------------------+
 	// |             HTTP Router             |
 	// +-------------------------------------+
