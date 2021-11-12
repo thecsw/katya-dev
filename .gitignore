@@ -1,3 +1,7 @@
+# Ignore some of the binaries
+gotty
+ttyd
+
 ca
 client
 sanfran
