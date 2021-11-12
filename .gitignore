@@ -1,3 +1,6 @@
+# ignore all the created spiders
+spiders/
+
 # Ignore some of the binaries
 gotty
 ttyd
