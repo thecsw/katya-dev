@@ -54,7 +54,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 	//   - text: actual simple extracted text that's tokenized (spaces around PUNCT)
 	//   - tags: tagged results, allows searching for like "NOUN PART VERB VERB"
 	//   - shapes: just shapes like "Xxx xxxx - xx xxxx - x ?" -> "Это всемирную - то историю - с ?"
-	//   - nomins: nominatives will take in a nominative case of a word and search for all its
+	//   - lemmas: lemmas will take in a nominative case of a word and search for all its
 	//             conjugations, such that a search for a nominative word of "полюбить" will
 	//             automatically search for "полюбил" or "полюбить" or "полюбили". Pretty coll!
 	partLookup := r.URL.Query().Get("part")
@@ -84,7 +84,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 		offset = 0
 	}
 
-	// Find all the matches from the database by doing a string submatch search
+	// Find all the matches from the database by doing a string sub-match search
 	resultsDB, err := storage.MapPartToFindFunction[partLookup](user.ID, query, limit, offset, caseSensitive == "1")
 	if err != nil {
 		httpJSON(w, nil, http.StatusInternalServerError, err)
@@ -100,7 +100,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 			"text":   v.Text,
 			"shapes": v.Shapes,
 			"tags":   v.Tags,
-			"nomins": v.Nominatives,
+			"lemmas": v.Lemmas,
 		}
 
 		// Try to find all indices of this substring in the text to later map it to token indices
@@ -115,7 +115,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 		textSplit := strings.Split(v.Text, " ")
 		tagsSplit := strings.Split(v.Tags, " ")
 		shapesSplit := strings.Split(v.Shapes, " ")
-		nominativesSplit := strings.Split(v.Nominatives, " ")
+		lemmasSplit := strings.Split(v.Lemmas, " ")
 
 		// File every match in the found text in its own result case
 		for _, index := range matches[:utils.Min(limitPerSource, len(matches))] {
@@ -129,7 +129,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 				"text":   textSplit,
 				"shapes": shapesSplit,
 				"tags":   tagsSplit,
-				"nomins": nominativesSplit,
+				"lemmas": lemmasSplit,
 			}
 
 			// Map the actual found query's index into the token index
@@ -160,9 +160,9 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 			// rightShapesSplit := shapesSplit[rightSplitLeftIndex:rightSplitRightIndex]
 
 			// // Split the nominative tokens into the results section
-			// leftNominativesSplit := nominativesSplit[leftSplitLeftIndex:leftSplitRightIndex]
-			// centerNominativesSplit := nominativesSplit[centerSplitLeftIndex:centerSplitRightIndex]
-			// rightNominativesSplit := nominativesSplit[rightSplitLeftIndex:rightSplitRightIndex]
+			// leftNominativesSplit := lemmasSplit[leftSplitLeftIndex:leftSplitRightIndex]
+			// centerNominativesSplit := lemmasSplit[centerSplitLeftIndex:centerSplitRightIndex]
+			// rightNominativesSplit := lemmasSplit[rightSplitLeftIndex:rightSplitRightIndex]
 
 			// Join the tokens into the actual representable state for the user
 			leftText := strings.Join(leftTextSplit, " ")

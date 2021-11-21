@@ -51,12 +51,12 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			httpJSON(w, nil, http.StatusBadRequest, errors.New("base64 decoding failed"))
 			return
 		}
-		creds := strings.Split(string(decoded), ":")
-		if len(creds) != 2 {
+		credentials := strings.Split(string(decoded), ":")
+		if len(credentials) != 2 {
 			httpJSON(w, nil, http.StatusBadRequest, errors.New("basic auth is malformed"))
 			return
 		}
-		user, pass := creds[0], creds[1]
+		user, pass := credentials[0], credentials[1]
 		if user == "" {
 			httpJSON(w, nil, http.StatusBadRequest, errors.New("bad user credentials"))
 			return
@@ -74,8 +74,8 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		if foundUser.Password != utils.ShaEncode(pass) {
 			httpJSON(w, nil, http.StatusForbidden, errors.New("bad user credentials"))
 			// Someone is maybe trying to guess the password
-			badLoginAttempts.Add(ipAddr, uint(0), cache.DefaultExpiration)
-			badLoginAttempts.IncrementUint(ipAddr, 1)
+			_ = badLoginAttempts.Add(ipAddr, uint(0), cache.DefaultExpiration)
+			_, _ = badLoginAttempts.IncrementUint(ipAddr, 1)
 			return
 		}
 		newContext := context.WithValue(context.TODO(), ContextKey("user"), *foundUser)
@@ -84,6 +84,6 @@ func loggingMiddleware(next http.Handler) http.Handler {
 }
 
 // verifyAuth verifies that the credentials are OK
-func verifyAuth(w http.ResponseWriter, r *http.Request) {
+func verifyAuth(w http.ResponseWriter, _ *http.Request) {
 	httpJSON(w, httpMessageReturn{Message: "OK"}, http.StatusOK, nil)
 }

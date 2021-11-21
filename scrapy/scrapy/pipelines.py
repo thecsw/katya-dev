@@ -14,12 +14,12 @@ from cleantext import clean
 
 # from icecream import ic
 # import langdetect
-#import nltk
+# import nltk
 import spacy
 
 # URL to submit processed strings
 URL_BASE = "https://127.0.0.1:32000"
-URL_CLEAN = URL_BASE + "/noor"
+URL_CLEAN = URL_BASE + "/text"
 URL_STATUS = URL_BASE + "/status"
 
 # Session for requests
@@ -29,8 +29,9 @@ s.verify = False
 # ---------- RUSSIAN SPACY -------------
 # Check here: https://spacy.io/models/ru
 # --------------------------------------
-#nlp_ru = spacy.load('ru_core_news_sm')
-nlp_ru = spacy.load('ru_core_news_lg')
+# nlp_ru = spacy.load('ru_core_news_sm') # lightweight
+nlp_ru = spacy.load("ru_core_news_lg")  # heavylifter
+
 
 def headers(spiderName):
     return {
@@ -38,15 +39,15 @@ def headers(spiderName):
         "Accept": "*/*",
         "Connection": "keep-alive",
         "Content-Type": "application/json",
-        "Authorization": "noorkey",
+        "Authorization": "cool_local_key",
     }
 
 
-class NoorPipeline:
+class ScrapyPipeline:
     def open_spider(self, spider):
         """
         This runs when a new spider starts running. We send this
-        to tino, so that we can add a new run.
+        to katya, so that we can add a new run.
         """
         # self.file = open(f"spider-{spider.name}.json", "w")
         try:
@@ -66,7 +67,7 @@ class NoorPipeline:
     def close_spider(self, spider):
         """
         This runs when a spider finishes its job. We send the status
-        to tino to update the Runs table.
+        to katya to update the Runs table.
         """
         # self.file.close()
         try:
@@ -87,8 +88,8 @@ class NoorPipeline:
         """
         This function is called when a crawler yields results, which is the
         payload that a crawler sends back to us. We clean the received payload,
-        which is a raw HTML read of the page and send it in a Noor payload straight
-        to Tino.
+        which is a raw HTML read of the page and send it in a text payload straight
+        to katya.
 
         TODO: Possibly in the future, it would need to do some automated lexical tagging.
         """
@@ -96,12 +97,12 @@ class NoorPipeline:
         clean_text = clean_raw_html(str(text))
 
         doc = nlp_ru(clean_text)
-        
-        #word_tokens = nltk.word_tokenize(clean_text, language="russian")
-        #num_words = len(word_tokens)
 
-        #sent_tokens = nltk.sent_tokenize(clean_text, language="russian")
-        #num_sents = len(sent_tokens)
+        # word_tokens = nltk.word_tokenize(clean_text, language="russian")
+        # num_words = len(word_tokens)
+
+        # sent_tokens = nltk.sent_tokenize(clean_text, language="russian")
+        # num_sents = len(sent_tokens)
 
         num_sents = len([sent for sent in doc.sents])
         num_words = len([True for token in doc if token.is_alpha])
@@ -135,7 +136,7 @@ class NoorPipeline:
                 URL_CLEAN, data=final_json.encode("utf-8"), headers=headers(spider.name)
             )
         except Exception as e:
-            print("Failed to send a noor payload:", e)
+            print("Failed to send a text payload:", e)
 
         return item
 

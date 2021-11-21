@@ -26,7 +26,7 @@ type Source struct {
 	// NumWords is the number of words for the whole source
 	NumWords uint `json:"num_words"`
 	// NumSentences is the number of sentences for the whole source
-	NumSentences uint `json:"num_sents"`
+	NumSentences uint `json:"num_sentences"`
 
 	// Each source has multiple texts and each text can be linked
 	// to from multiple different source (overlapping links)
@@ -71,7 +71,7 @@ type Global struct {
 	// NumWords is the number of words across ALL texts
 	NumWords uint `json:"num_words"`
 	// NumSentences is the number of sentences across ALL texts
-	NumSentences uint `json:"num_sents"`
+	NumSentences uint `json:"num_sentences"`
 }
 
 // Text struct actually stores the data that we scraped, it's back-linked
@@ -94,16 +94,16 @@ type Text struct {
 	Shapes string `json:"shapes"`
 	// Tags is the tokenized text from SpaCy
 	Tags string `json:"tags"`
-	// Nominatives is the tokenized text of nominatives from SpaCy
-	Nominatives string `json:"nomins"`
+	// Lemmas is the tokenized text of nominatives from SpaCy
+	Lemmas string `json:"lemmas"`
 	// Title is the title of the HTML webpage (extracted)
 	Title string `json:"title"`
 	// NumWords is the number of words (no punct) of the Text
 	NumWords uint `json:"num_words"`
 	// NumWords is the number of sentences of the Text
-	NumSents uint `json:"num_sents"`
+	NumSentences uint `json:"num_sentences"`
 
 	// Text can be associated with multiple sources and a source
-	// can be associated with many different texts
+	// can be associated with many texts
 	Sources []*Source `gorm:"many2many:source_texts;" json:"-"`
 }

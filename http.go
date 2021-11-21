@@ -21,7 +21,7 @@ var (
 		csvHeaderForFind: {
 			"reverse left", "reverse center",
 			"left", "center", "right", "source", "title"},
-		csvHeaderForFrequencies: {"word", "hits"},
+		csvHeaderForFrequencies: {"lemma", "hits"},
 	}
 )
 
@@ -47,7 +47,7 @@ func httpCSVFindResults(w http.ResponseWriter, results []SearchResult, status in
 			v.LeftReverse, v.CenterReverse, v.Left, v.Center, v.Right, v.Source, v.Title,
 		})
 	}
-	csv.NewWriter(w).WriteAll(toWrite)
+	_ = csv.NewWriter(w).WriteAll(toWrite)
 }
 
 type Pair struct {
@@ -83,7 +83,7 @@ func httpCSVFreqResults(w http.ResponseWriter, results map[string]uint, status i
 	for _, v := range p {
 		toWrite = append(toWrite, []string{v.Key, strconv.FormatUint(uint64(v.Value), 10)})
 	}
-	csv.NewWriter(w).WriteAll(toWrite)
+	_ = csv.NewWriter(w).WriteAll(toWrite)
 }
 
 // httpJSON is a generic http object passer.
@@ -92,16 +92,16 @@ func httpJSON(w http.ResponseWriter, data interface{}, status int, err error) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
 	if err != nil && status >= 400 && status < 600 {
-		json.NewEncoder(w).Encode(httpErrorReturn{Error: err.Error()})
+		_ = json.NewEncoder(w).Encode(httpErrorReturn{Error: err.Error()})
 		return
 	}
-	json.NewEncoder(w).Encode(data)
+	_ = json.NewEncoder(w).Encode(data)
 }
 
 // httpHTML sends a good HTML response.
 func httpHTML(w http.ResponseWriter, data interface{}) {
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, data)
+	_, _ = fmt.Fprint(w, data)
 }
 
 func unicodeIsThis(k string, isFunc func(rune) bool) bool {

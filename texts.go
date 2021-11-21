@@ -11,8 +11,8 @@ import (
 	"github.com/thecsw/katya/storage"
 )
 
-// NoorPayload is what we get from our crawlers on every text submission
-type NoorPayload struct {
+// TextPayload is what we get from our crawlers on every text submission
+type TextPayload struct {
 	// Name is the name of our crawler
 	Name string `json:"name"`
 	// StartURL is the starting URL that crawler had
@@ -28,7 +28,7 @@ type NoorPayload struct {
 	// NumWords is the number of words in this source (no punctuations)
 	NumWords int `json:"num_words"`
 	// NumSentences is the number of sentences in this source
-	NumSentences int `json:"num_sents"`
+	NumSentences int `json:"num_sentences"`
 	// Original is the cleaned text crawler worked out
 	Original string `json:"original"`
 	// Text is the tokenized cleaned text SpaCy gave us
@@ -37,22 +37,22 @@ type NoorPayload struct {
 	Shapes string `json:"shapes"`
 	// Tags is the tokenized tags data from SpaCy
 	Tags string `json:"tags"`
-	// Nominatives is the tokenized nominatives data from SpaCy
-	Nominatives string `json:"nomins"`
+	// Lemmas is the tokenized lemmas data from SpaCy
+	Lemmas string `json:"lemmas"`
 }
 
-// noorReceiver is used by crawlers to submit a new tagged and analyzed text
-func noorReceiver(w http.ResponseWriter, r *http.Request) {
-	noorKey := r.Header.Get("Authorization")
-	if noorKey != "noorkey" {
+// textReceiver is used by crawlers to submit a new tagged and analyzed text
+func textReceiver(w http.ResponseWriter, r *http.Request) {
+	scrapyLocalKey := r.Header.Get("Authorization")
+	if scrapyLocalKey != "cool_local_key" {
 		log.Error("Bad Authorization header", errors.New("bad key"), log.Params{})
 		return
 	}
-	payload := &NoorPayload{}
+	payload := &TextPayload{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
 	if err != nil {
-		log.Error("Failed decoding a noor payload", err, log.Params{})
+		log.Error("Failed decoding a text payload", err, log.Params{})
 		return
 	}
 	thisParams := log.Params{
@@ -87,7 +87,7 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 		payload.Text,
 		payload.Shapes,
 		payload.Tags,
-		payload.Nominatives,
+		payload.Lemmas,
 		payload.Title,
 		uint(payload.NumWords),
 		uint(payload.NumSentences),
@@ -110,14 +110,14 @@ func noorReceiver(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update the word and sent num caches
-	sourcesNumWordsDelta.Add(payload.StartURL, uint(0), cache.NoExpiration)
-	sourcesNumSentsDelta.Add(payload.StartURL, uint(0), cache.NoExpiration)
+	_ = sourcesNumWordsDelta.Add(payload.StartURL, uint(0), cache.NoExpiration)
+	_ = sourcesNumSentencesDelta.Add(payload.StartURL, uint(0), cache.NoExpiration)
 
-	sourcesNumWordsDelta.IncrementUint(payload.StartURL, uint(payload.NumWords))
-	sourcesNumSentsDelta.IncrementUint(payload.StartURL, uint(payload.NumSentences))
+	_, _ = sourcesNumWordsDelta.IncrementUint(payload.StartURL, uint(payload.NumWords))
+	_, _ = sourcesNumSentencesDelta.IncrementUint(payload.StartURL, uint(payload.NumSentences))
 
-	globalNumWordsDelta.IncrementUint(globalDeltaCacheKey, uint(payload.NumWords))
-	globalNumSentsDelta.IncrementUint(globalDeltaCacheKey, uint(payload.NumSentences))
+	_, _ = globalNumWordsDelta.IncrementUint(globalDeltaCacheKey, uint(payload.NumWords))
+	_, _ = globalNumSentencesDelta.IncrementUint(globalDeltaCacheKey, uint(payload.NumSentences))
 
 	httpJSON(w, httpMessageReturn{
 		Message: "success",
@@ -134,8 +134,8 @@ type StatusPayload struct {
 
 // statusReceiver takes the input from crawlers' statuses
 func statusReceiver(w http.ResponseWriter, r *http.Request) {
-	noorKey := r.Header.Get("Authorization")
-	if noorKey != "noorkey" {
+	scrapyLocalKey := r.Header.Get("Authorization")
+	if scrapyLocalKey != "cool_local_key" {
 		log.Error("Bad Authorization header", errors.New("bad key"), log.Params{})
 		return
 	}
@@ -163,6 +163,6 @@ func statusReceiver(w http.ResponseWriter, r *http.Request) {
 }
 
 // helloReceiver just sends hello through API
-func helloReceiver(w http.ResponseWriter, r *http.Request) {
+func helloReceiver(w http.ResponseWriter, _ *http.Request) {
 	httpJSON(w, httpMessageReturn{"hello, world"}, http.StatusOK, nil)
 }

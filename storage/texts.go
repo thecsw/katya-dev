@@ -13,7 +13,7 @@ const (
 	duplicateKeyViolatedError = "duplicate key value violates unique constraint"
 )
 
-// CreateText creates a full text that we receive with Noor
+// CreateText creates a full text that we receive from our scrapers
 func CreateText(
 	source string,
 	url string,
@@ -23,10 +23,10 @@ func CreateText(
 	text string,
 	shapes string,
 	tags string,
-	nomins string,
+	lemmas string,
 	title string,
 	numWords uint,
-	numSents uint,
+	numSentences uint,
 ) error {
 	textFound, err := GetText(url, false)
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -38,18 +38,18 @@ func CreateText(
 	alreadyExisted := textFound.ID != 0
 	if !alreadyExisted {
 		toAdd = &Text{
-			URL:         url,
-			IP:          ip,
-			Status:      status,
-			Original:    original,
-			Text:        text,
-			Shapes:      shapes,
-			Tags:        tags,
-			Nominatives: nomins,
-			Title:       title,
-			NumWords:    numWords,
-			NumSents:    numSents,
-			Sources:     []*Source{},
+			URL:          url,
+			IP:           ip,
+			Status:       status,
+			Original:     original,
+			Text:         text,
+			Shapes:       shapes,
+			Tags:         tags,
+			Lemmas:       lemmas,
+			Title:        title,
+			NumWords:     numWords,
+			NumSentences: numSentences,
+			Sources:      []*Source{},
 		}
 		err = DB.Create(toAdd).Error
 		if err != nil {
@@ -81,7 +81,7 @@ func CreateText(
 		"title":           title,
 		"ip":              ip,
 		"num_words":       numWords,
-		"num_sents":       numSents,
+		"num_sentences":   numSentences,
 		"already_existed": alreadyExisted,
 		"already_linked":  alreadyLinkedToSource,
 	})
@@ -117,7 +117,7 @@ func GetText(url string, fill bool) (*Text, error) {
 	return text, nil
 }
 
-// TextAddSource will add a manual relationship between a source and a text
+// TextConnectSource will add a manual relationship between a source and a text
 func TextConnectSource(sourceID, textID uint) error {
 	return DB.Exec("INSERT into source_texts (source_id, text_id) values (?, ?)", sourceID, textID).Error
 }

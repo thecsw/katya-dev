@@ -30,9 +30,9 @@ func UpdateGlobalWordNum(numWords uint) error {
 }
 
 // UpdateGlobalSentNum returns the global number of sentences
-func UpdateGlobalSentNum(numSents uint) error {
+func UpdateGlobalSentNum(numSentences uint) error {
 	return DB.Exec(
 		"UPDATE globals SET num_sentences = num_sentences + ? where id = 1",
-		numSents).
+		numSentences).
 		Error
 }

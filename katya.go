@@ -17,46 +17,46 @@ import (
 )
 
 const (
-	// LISTEN_ADDRESS is the port number of our HTTP router
-	LISTEN_ADDRESS = ":32000"
+	// ListenAddress is the port number of our HTTP router
+	ListenAddress = ":32000"
 
-	// CRAWLERS_DIR is the directory for our crawlers (spiders)
-	CRAWLERS_DIR = "./chelsea/chelsea/spiders/"
-	// LOGS_DIR is where we send the logs from our crawlers (spiders)
-	LOGS_DIR = "./logs/"
-	// SCRAPY_DIR is the home directory of our scrapy instance
-	SCRAPY_DIR = "./chelsea/"
+	// CrawlersDir is the directory for our crawlers (spiders)
+	CrawlersDir = "./scrapy/scrapy/spiders/"
+	// LogsDir is where we send the logs from our crawlers (spiders)
+	LogsDir = "./logs/"
+	// ScrapyDir is the home directory of our scrapy instance
+	ScrapyDir = "./scrapy/"
 
 	// RESTClientCert is the location of HTTP router's certificate
 	RESTClientCert string = "./certs/fullchain.pem"
 	// RESTClientKey is the location of HTTP router's private key
 	RESTClientKey string = "./certs/privkey.pem"
 
-	// DB_HOST is the destination address of our DB
-	DB_HOST = "katya.sandyuraz.com"
-	// DB_PORT is the DB port that we have
-	DB_PORT = 5432
-	// DB_NAME is the database name of our DB (usually username)
-	DB_NAME = "sandy"
-	// DB_USER is the DB user we will be working as
-	DB_USER = "sandy"
-	// DB_SSLMODE dictates on how we check our SSL
-	DB_SSLMODE = "verify-full"
-	// DB_SSLCERT is the certificate CA signed for us
-	DB_SSLCERT = "./tools/client/client.crt"
-	// DB_SSLKEY is our private key to prove our identity
-	DB_SSLKEY = "./tools/client/client.key"
-	// DB_SSLROOTCERT is the certificate list of the ruling CA (self-CA)
-	DB_SSLROOTCERT = "./tools/ca/ca.crt"
+	// DbHost is the destination address of our DB
+	DbHost = "katya-api.sandyuraz.com"
+	// DbPort is the DB port that we have
+	DbPort = 5432
+	// DbName is the database name of our DB (usually username)
+	DbName = "sandy"
+	// DbUser is the DB user we will be working as
+	DbUser = "sandy"
+	// DbSSLMode dictates on how we check our SSL
+	DbSSLMode = "verify-full"
+	// DbSSLCertificate is the certificate CA signed for us
+	DbSSLCertificate = "./tools/client/client.crt"
+	// DbSSLKey is our private key to prove our identity
+	DbSSLKey = "./tools/client/client.key"
+	// DbSSLRootCertificate is the certificate list of the ruling CA (self-CA)
+	DbSSLRootCertificate = "./tools/ca/ca.crt"
 )
 
 var (
-	//go:embed chelsea/chelsea/spiders/template.py
+	//go:embed data/template_spider.py
 	templateCrawler string
 
 	dsn = fmt.Sprintf(
 		"host=%s port=%d user=%s dbname=%s sslmode=%s sslcert=%s sslkey=%s sslrootcert=%s",
-		DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_SSLMODE, DB_SSLCERT, DB_SSLKEY, DB_SSLROOTCERT,
+		DbHost, DbPort, DbUser, DbName, DbSSLMode, DbSSLCertificate, DbSSLKey, DbSSLRootCertificate,
 	)
 
 	// dsn to connect to Postgres.
@@ -95,7 +95,11 @@ func main() {
 	}
 	defer func() {
 		log.Format("Closing the database connection", log.Params{"DSN": dsn})
-		storage.CloseDB()
+		err := storage.CloseDB()
+		if err != nil {
+			log.Error("Failed closing the database connection", err, log.Params{"DSN": dsn})
+			return
+		}
 	}()
 
 	// +-------------------------------------+
@@ -109,13 +113,13 @@ func main() {
 		}
 	}
 	// Create the delta caches
-	log.Info("Creating delta words/sents caches")
-	globalNumWordsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
-	globalNumSentsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
+	log.Info("Creating delta words/sentences caches")
+	_ = globalNumWordsDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
+	_ = globalNumSentencesDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 
-	log.Info("Spinning up the words/sents goroutines")
-	go updateGlobalWordSentsDeltas()
-	go updateSourcesWordSentsDeltas()
+	log.Info("Spinning up the words/sentences goroutines")
+	go updateGlobalWordSentencesDeltas()
+	go updateSourcesWordSentencesDeltas()
 
 	// Loading stopwords
 	log.Info("Loading stopwords")
@@ -130,19 +134,19 @@ func main() {
 	myRouter.Use(basicMiddleware)
 
 	myRouter.HandleFunc("/", helloReceiver).Methods(http.MethodGet)
-	myRouter.HandleFunc("/noor", noorReceiver).Methods(http.MethodPost)
+	myRouter.HandleFunc("/text", textReceiver).Methods(http.MethodPost)
 	myRouter.HandleFunc("/status", statusReceiver).Methods(http.MethodPost)
 
 	subRouter := myRouter.PathPrefix("").Subrouter()
 
 	subRouter.HandleFunc("/auth", verifyAuth).Methods(http.MethodPost)
 	subRouter.HandleFunc("/find", findQueryInTexts).Methods(http.MethodGet)
-	subRouter.HandleFunc("/freqs", frequencyFinder).Methods(http.MethodGet)
 	subRouter.HandleFunc("/trigger", crawlerRunner).Methods(http.MethodPost)
 	subRouter.HandleFunc("/sources", userGetSources).Methods(http.MethodGet)
 	subRouter.HandleFunc("/allocate", crawlerCreator).Methods(http.MethodPost)
 	subRouter.HandleFunc("/source", userCreateSource).Methods(http.MethodPost)
 	subRouter.HandleFunc("/source", userDeleteSource).Methods(http.MethodDelete)
+	subRouter.HandleFunc("/frequencies", frequencyFinder).Methods(http.MethodGet)
 	subRouter.HandleFunc("/status", crawlerStatusReceiver).Methods(http.MethodGet)
 
 	log.Info("Enabled the auth portal for the API router")
@@ -167,7 +171,7 @@ func main() {
 	handler := corsOptions.Handler(myRouter)
 	srv := &http.Server{
 		Handler: handler,
-		Addr:    LISTEN_ADDRESS,
+		Addr:    ListenAddress,
 		// Good practice: enforce timeouts for servers you create!
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
@@ -182,7 +186,7 @@ func main() {
 			log.Error("Failed to fire up the router", err, log.Params{})
 		}
 	}()
-	log.Info("Started the HTTP router, port: " + LISTEN_ADDRESS)
+	log.Info("Started the HTTP router, port: " + ListenAddress)
 
 	//OLD SERVER
 	// handler := cors.Default().Handler(myRouter)

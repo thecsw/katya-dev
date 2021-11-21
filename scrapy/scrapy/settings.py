@@ -1,4 +1,4 @@
-# Scrapy settings for chelsea project
+# Scrapy settings for scrapy project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,10 +7,10 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "chelsea"
+BOT_NAME = "scrapy"
 
-SPIDER_MODULES = ["chelsea.spiders"]
-NEWSPIDER_MODULE = "chelsea.spiders"
+SPIDER_MODULES = ["scrapy.spiders"]
+NEWSPIDER_MODULE = "scrapy.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -20,10 +20,10 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, lik
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-#CONCURRENT_REQUESTS = 32
+# CONCURRENT_REQUESTS = 32
 CONCURRENT_REQUESTS = 1
 
-#DOWNLOAD_DELAY = 3
+# DOWNLOAD_DELAY = 3
 
 REACTOR_THREADPOOL_MAXSIZE = 20
 
@@ -31,7 +31,7 @@ RETRY_ENABLED = False
 
 RETRY_HTTP_CODES = [429]
 
-#REDIRECT_ENABLED = False
+# REDIRECT_ENABLED = False
 REDIRECT_ENABLED = True
 
 AJAXCRAWL_ENABLED = True
@@ -42,7 +42,7 @@ AJAXCRAWL_ENABLED = True
 # SCHEDULER_MEMORY_QUEUE = 'scrapy.squeues.FifoMemoryQueue'
 
 # Enable when crawling multiple domains
-#SCHEDULER_PRIORITY_QUEUE = 'scrapy.pqueues.DownloaderAwarePriorityQueue'
+# SCHEDULER_PRIORITY_QUEUE = 'scrapy.pqueues.DownloaderAwarePriorityQueue'
 
 DOWNLOAD_MAXSIZE = 1048576  # 1MB
 
@@ -71,14 +71,14 @@ COOKIES_ENABLED = False
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 # SPIDER_MIDDLEWARES = {
-#    'chelsea.middlewares.ChelseaSpiderMiddleware': 543,
+#    'scrapy.middlewares.ScrapySpiderMiddleware': 543,
 # }
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
-    #'chelsea.middlewares.ChelseaDownloaderMiddleware': 543,
-    'chelsea.middlewares.TooManyRequestsRetryMiddleware': 543,
+    #'scrapy.middlewares.ScrapyDownloaderMiddleware': 543,
+    "scrapy.middlewares.TooManyRequestsRetryMiddleware": 543,
 }
 
 # Enable or disable extensions
@@ -90,7 +90,7 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    "chelsea.pipelines.NoorPipeline": 300,
+    "scrapy.pipelines.ScrapyPipeline": 300,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

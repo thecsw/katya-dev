@@ -8,7 +8,7 @@ var (
 		"text":   FindTextsByUserID,
 		"shapes": FindShapesByUserID,
 		"tags":   FindTagsByUserID,
-		"nomins": FindNominativesByUserID,
+		"lemmas": FindLemmasByUserID,
 	}
 )
 
@@ -42,8 +42,8 @@ func FindTagsByUserID(userID uint,
 	return findTextsPartsByUserID("texts.tags", userID, query, limit, offset, caseSensitive)
 }
 
-// FindNominativesByUserID runs a DB search against the nominatives part of texts
-func FindNominativesByUserID(userID uint,
+// FindLemmasByUserID runs a DB search against the nominatives part of texts
+func FindLemmasByUserID(userID uint,
 	query string,
 	limit int,
 	offset int,

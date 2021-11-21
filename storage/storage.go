@@ -30,7 +30,11 @@ func InitDB(dsn string) error {
 	if err != nil {
 		return err
 	}
-	DB.AutoMigrate(&User{}, &Source{}, &Crawler{}, &Scrape{}, &Global{}, &Text{})
+	err = DB.AutoMigrate(&User{}, &Source{}, &Crawler{}, &Scrape{}, &Global{}, &Text{})
+	if err != nil {
+		log.Error("Failed to automatically migrate gorm tables!", err, log.Params{"DSN": dsn})
+		return err
+	}
 	return nil
 }
 

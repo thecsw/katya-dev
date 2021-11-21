@@ -14,7 +14,7 @@ func CreateUser(name, pass string) error {
 	found, err := IsUser(name)
 	if found {
 		log.Error("User already exists", err, log.Params{"user": name})
-		return errors.New("User already exists")
+		return errors.New("user already exists")
 	}
 	if err != nil && err != gorm.ErrRecordNotFound {
 		log.Error("Failed to check user existence", err, log.Params{"user": name})

@@ -96,10 +96,10 @@ func UpdateSourceWordNum(url string, numWords uint) error {
 }
 
 // UpdateSourceSentNum updates source's number of sentences
-func UpdateSourceSentNum(url string, numSents uint) error {
+func UpdateSourceSentNum(url string, numSentences uint) error {
 	return DB.Exec(
 		"UPDATE sources SET num_sentences = num_sentences + ? WHERE link = ?",
-		numSents, url).
+		numSentences, url).
 		Error
 }
 

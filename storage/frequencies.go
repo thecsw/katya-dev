@@ -19,7 +19,7 @@ func FindTheMostFrequentWords(sourceURL string) (map[string]uint, error) {
 	}
 	finalFrequencies := make(map[string]uint)
 	for _, text := range texts {
-		tokens := strings.Split(text.Nominatives, " ")
+		tokens := strings.Split(text.Lemmas, " ")
 		for _, token := range tokens {
 			lower := strings.ToLower(token)
 			finalFrequencies[lower]++
