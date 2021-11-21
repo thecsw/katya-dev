@@ -5,6 +5,8 @@ spiders/
 gotty
 ttyd
 
+*.pem
+
 ca
 client
 sanfran
