@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -78,12 +79,15 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			_, _ = badLoginAttempts.IncrementUint(ipAddr, 1)
 			return
 		}
+		w.Header().Add("Set-Cookie",
+			fmt.Sprintf("user=Basic %s", tokens[1]),
+		)
 		newContext := context.WithValue(context.TODO(), ContextKey("user"), *foundUser)
 		next.ServeHTTP(w, r.WithContext(newContext))
 	})
 }
 
 // verifyAuth verifies that the credentials are OK
-func verifyAuth(w http.ResponseWriter, _ *http.Request) {
+func verifyAuth(w http.ResponseWriter, r *http.Request) {
 	httpJSON(w, httpMessageReturn{Message: "OK"}, http.StatusOK, nil)
 }

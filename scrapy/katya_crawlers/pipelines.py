@@ -102,14 +102,14 @@ class ScrapyPipeline:
         # num_words = len(word_tokens)
 
         # sent_tokens = nltk.sent_tokenize(clean_text, language="russian")
-        # num_sents = len(sent_tokens)
+        # num_sentences = len(sent_tokens)
 
-        num_sents = len([sent for sent in doc.sents])
+        num_sentences = len([sent for sent in doc.sents])
         num_words = len([True for token in doc if token.is_alpha])
 
         shapes = " ".join(([token.shape_ for token in doc]))
         tags = " ".join(([token.tag_ for token in doc]))
-        nomin = " ".join(([token.lemma_ for token in doc]))
+        lemmas = " ".join(([token.lemma_ for token in doc]))
         to_send_text = " ".join(([token.text for token in doc]))
 
         to_return = {
@@ -117,7 +117,7 @@ class ScrapyPipeline:
             "text": to_send_text,
             "shapes": shapes,
             "tags": tags,
-            "nomins": nomin,
+            "lemmas": lemmas,
             "title": ItemAdapter(item).get("title"),
             "ip": ItemAdapter(item).get("ip"),
             "url": ItemAdapter(item).get("url"),
@@ -125,7 +125,7 @@ class ScrapyPipeline:
             "start": spider.start_url,
             "name": spider.name,
             "num_words": num_words,
-            "num_sents": num_sents,
+            "num_sentences": num_sentences,
         }
 
         final_json = json.dumps(to_return, ensure_ascii=False, sort_keys=True)

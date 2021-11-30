@@ -7,10 +7,10 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "scrapy"
+BOT_NAME = "katya_crawlers"
 
-SPIDER_MODULES = ["scrapy.spiders"]
-NEWSPIDER_MODULE = "scrapy.spiders"
+SPIDER_MODULES = ["katya_crawlers.spiders"]
+NEWSPIDER_MODULE = "katya_crawlers.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -71,26 +71,26 @@ COOKIES_ENABLED = False
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 # SPIDER_MIDDLEWARES = {
-#    'scrapy.middlewares.ScrapySpiderMiddleware': 543,
+#    'katya_crawlersmiddlewares.ScrapySpiderMiddleware': 543,
 # }
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
     #'scrapy.middlewares.ScrapyDownloaderMiddleware': 543,
-    "scrapy.middlewares.TooManyRequestsRetryMiddleware": 543,
+    "katya_crawlers.middlewares.TooManyRequestsRetryMiddleware": 543,
 }
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
 # EXTENSIONS = {
-#    'scrapy.extensions.telnet.TelnetConsole': None,
+#    'katya_crawlersextensions.telnet.TelnetConsole': None,
 # }
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    "scrapy.pipelines.ScrapyPipeline": 300,
+    "katya_crawlers.pipelines.ScrapyPipeline": 300,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

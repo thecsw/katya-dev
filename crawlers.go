@@ -182,13 +182,13 @@ func triggerCrawler(user, link string) (string, error) {
 	go func() {
 		err := scrapyCmd.Run()
 		if err != nil {
-			log.Error("FAILED TO START SCRAPY", err, log.Params{"log_file": logFile})
+			log.Error("FAILED TO START SCRAPY", err, log.Params{"log_file": logFile.Name()})
 			return
 		}
 		// close the file
 		err = logFile.Close()
 		if err != nil {
-			log.Error("FAILED CLOSE SCRAPY LOG FILE", err, log.Params{"log_file": logFile})
+			log.Error("FAILED CLOSE SCRAPY LOG FILE", err, log.Params{"log_file": logFile.Name()})
 			return
 		}
 	}()

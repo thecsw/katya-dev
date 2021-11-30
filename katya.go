@@ -21,7 +21,7 @@ const (
 	ListenAddress = ":32000"
 
 	// CrawlersDir is the directory for our crawlers (spiders)
-	CrawlersDir = "./scrapy/scrapy/spiders/"
+	CrawlersDir = "./scrapy/katya_crawlers/spiders/"
 	// LogsDir is where we send the logs from our crawlers (spiders)
 	LogsDir = "./logs/"
 	// ScrapyDir is the home directory of our scrapy instance
@@ -51,22 +51,38 @@ const (
 )
 
 var (
+	katyaDevEnvironment = true
+
+	// default banner thing to say
+	katyaBannerStrip = "Production Environment"
+
 	//go:embed data/template_spider.py
 	templateCrawler string
 
+	// dsn to connect to Postgres.
 	dsn = fmt.Sprintf(
 		"host=%s port=%d user=%s dbname=%s sslmode=%s sslcert=%s sslkey=%s sslrootcert=%s",
 		DbHost, DbPort, DbUser, DbName, DbSSLMode, DbSSLCertificate, DbSSLKey, DbSSLRootCertificate,
 	)
 
-	// dsn to connect to Postgres.
-	//dsn = "host=127.0.0.1 port=5432 user=sandy dbname=sandy"
+	// HTTP stuff for CORS pre-flight requests
+	allowedOrigins = []string{"https://sandyuraz.com", "https://katya-kappa.vercel.app"}
+	allowedMethods = []string{http.MethodPost, http.MethodGet, http.MethodDelete}
+	allowedHeaders = []string{"Authorization", "Content-Type", "Access-Control-Allow-Methods"}
 )
 
 func main() {
 	// +-------------------------------------+
 	// |                INIT                 |
 	// +-------------------------------------+
+
+	// Enable debug environment if the global flag is true
+	if katyaDevEnvironment {
+		dsn = "host=127.0.0.1 port=5432 user=sandy dbname=sandy"
+		katyaBannerStrip = "Development Environment"
+
+		allowedOrigins = append(allowedOrigins, "http://localhost:5000")
+	}
 
 	// Print the big banner
 	fmt.Println()
@@ -79,6 +95,12 @@ func main() {
 	pterm.DefaultCenter.
 		WithCenterEachLineSeparately().
 		Println("Katya and friends or The Liberated Corpus")
+
+	pterm.DefaultCenter.Print(
+		pterm.DefaultHeader.
+			WithFullWidth().
+			WithBackgroundStyle(pterm.NewStyle(pterm.BgBlack)).
+			WithMargin(1).Sprint(katyaBannerStrip))
 
 	// Initialize our log instance
 	log.Init()
@@ -109,7 +131,7 @@ func main() {
 	if !storage.DoesGlobalExist() {
 		log.Info("Creating the global element")
 		if err := storage.CreateGlobal(); err != nil {
-			log.Error("failed to create a global element", err, log.Params{})
+			log.Error("failed to create a global element", err, nil)
 		}
 	}
 	// Create the delta caches
@@ -118,8 +140,18 @@ func main() {
 	_ = globalNumSentencesDelta.Add(globalDeltaCacheKey, uint(0), cache.NoExpiration)
 
 	log.Info("Spinning up the words/sentences goroutines")
-	go updateGlobalWordSentencesDeltas()
-	go updateSourcesWordSentencesDeltas()
+	go func() {
+		for {
+			time.Sleep(deltaUpdateInterval)
+			updateGlobalWordSentencesDeltas()
+		}
+	}()
+	go func() {
+		for {
+			time.Sleep(deltaUpdateInterval)
+			updateSourcesWordSentencesDeltas()
+		}
+	}()
 
 	// Loading stopwords
 	log.Info("Loading stopwords")
@@ -152,6 +184,12 @@ func main() {
 	log.Info("Enabled the auth portal for the API router")
 	subRouter.Use(loggingMiddleware)
 
+	// Final preparations for the dev environment if enabled
+	if katyaDevEnvironment {
+		// Create a default user
+		storage.CreateUser("sandy", "urazayev")
+	}
+
 	// +-------------------------------------+
 	// |              BLOCKING               |
 	// +-------------------------------------+
@@ -159,9 +197,9 @@ func main() {
 	// Declare and define our HTTP handler
 	log.Info("Configuring the HTTP router")
 	corsOptions := cors.New(cors.Options{
-		AllowedOrigins:     []string{"https://sandyuraz.com", "https://katya-kappa.vercel.app"},
-		AllowedMethods:     []string{http.MethodPost, http.MethodGet, http.MethodDelete},
-		AllowedHeaders:     []string{"Authorization", "Content-Type", "Access-Control-Allow-Methods"},
+		AllowedOrigins:     allowedOrigins,
+		AllowedMethods:     allowedMethods,
+		AllowedHeaders:     allowedHeaders,
 		ExposedHeaders:     []string{},
 		MaxAge:             0,
 		AllowCredentials:   true,
@@ -179,35 +217,25 @@ func main() {
 	}
 	// Fire up the router
 	go func() {
-		// if err := srv.ListenAndServe(); err != nil {
-		// 	log.Println(err)
-		// }
-		if err := srv.ListenAndServeTLS(RESTClientCert, RESTClientKey); err != nil {
-			log.Error("Failed to fire up the router", err, log.Params{})
+		if katyaDevEnvironment {
+			if err := srv.ListenAndServe(); err != nil {
+				log.Error("Failed to fire up the router", err, nil)
+			}
+		} else {
+			if err := srv.ListenAndServeTLS(RESTClientCert, RESTClientKey); err != nil {
+				log.Error("Failed to fire up the router", err, nil)
+			}
 		}
 	}()
-	log.Info("Started the HTTP router, port: " + ListenAddress)
-
-	//OLD SERVER
-	// handler := cors.Default().Handler(myRouter)
-	// srv := &http.Server{
-	// 	Handler: handler,
-	// 	Addr:    LISTEN_ADDRESS,
-	// 	// Good practice: enforce timeouts for servers you create!
-	// 	WriteTimeout: 15 * time.Second,
-	// 	ReadTimeout:  15 * time.Second,
-	// 	IdleTimeout:  60 * time.Second,
-	// }
-	// //Fire up the router
-	// go func() {
-	// 	if err := srv.ListenAndServe(); err != nil {
-	// 		log.Info(err)
-	// 	}
-	// }()
+	log.Info("Started the HTTP router, port " + ListenAddress)
 
 	// Listen to SIGINT and other shutdown signals
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
 	log.Info("API is shutting down")
+	// Run the final updates
+	log.Info("Flushing last delta updates")
+	updateGlobalWordSentencesDeltas()
+	updateSourcesWordSentencesDeltas()
 }
