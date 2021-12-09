@@ -21,6 +21,10 @@ import (
 type crawlerActionPayload struct {
 	// Link is the crawler's link
 	Link string `json:"link"`
+	// Label is just user-created custom text
+	Label string `json:"label"`
+	// Enabled flags if something is disabled (defaults to false -> enabled)
+	Disabled bool `json:"disabled"`
 	// OnlySubpaths tells us if we only do subdirectories of the link
 	OnlySubpaths bool `json:"only_subpaths"`
 }
@@ -31,7 +35,7 @@ func crawlerCreator(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
 	if err != nil {
-		log.Error("Failed decoding a crawler creator payload", err, log.Params{})
+		log.Error("Failed decoding a crawler creator payload", err, nil)
 		return
 	}
 	user := r.Context().Value(ContextKey("user")).(storage.User)
@@ -54,7 +58,7 @@ func crawlerRunner(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
 	if err != nil {
-		log.Error("Failed decoding a crawler trigger payload", err, log.Params{})
+		log.Error("Failed decoding a crawler trigger payload", err, nil)
 		httpJSON(w, nil, http.StatusBadRequest, err)
 		return
 	}

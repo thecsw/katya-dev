@@ -12,9 +12,9 @@ func TestMax(t *testing.T) {
 		args args
 		want int
 	}{
-		{"same", args{1,1},1},
-		{"left", args{2,1},2},
-		{"right", args{1,2},2},
+		{"same", args{1, 1}, 1},
+		{"left", args{2, 1}, 2},
+		{"right", args{1, 2}, 2},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -35,9 +35,9 @@ func TestMin(t *testing.T) {
 		args args
 		want int
 	}{
-		{"same", args{1,1},1},
-		{"left", args{2,1},1},
-		{"right", args{1,2},1},
+		{"same", args{1, 1}, 1},
+		{"left", args{2, 1}, 1},
+		{"right", args{1, 2}, 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -14,6 +14,9 @@ type User struct {
 
 	// User can have multiple sources, a source can have multiple users
 	Sources []*Source `gorm:"many2many:user_sources;" json:"-"`
+
+	// SourcesEnabled maps to sources that a user has, but only enabled ones
+	SourcesEnabled []*Source `gorm:"many2many:user_sources_enabled;" json:"-"`
 }
 
 // Source struct defines a source website that is given by a user
@@ -23,6 +26,8 @@ type Source struct {
 
 	// Link is the starting link associated with the source
 	Link string `json:"link" gorm:"unique"`
+	// Label is the user-given label for the source
+	Label string `json:"label"`
 	// NumWords is the number of words for the whole source
 	NumWords uint `json:"num_words"`
 	// NumSentences is the number of sentences for the whole source
@@ -34,6 +39,12 @@ type Source struct {
 	// Each source can be connected to multiple users and each
 	// user can have multiple sources on their account
 	Users []*User `gorm:"many2many:user_sources;" json:"-"`
+	// UsersEnabled maps to sources that a user has, but only enabled ones
+	UsersEnabled []*User `gorm:"many2many:user_sources_enabled;" json:"-"`
+
+	// JSON-specific exports
+	// Enabled flags if the source is enabled when exported
+	Enabled bool `gorm:"-" json:"enabled"`
 }
 
 // Crawler struct defines the crawlers that we have, with the starting

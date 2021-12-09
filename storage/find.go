@@ -49,7 +49,7 @@ func FindLemmasByUserID(userID uint,
 	offset int,
 	caseSensitive bool,
 ) ([]Text, error) {
-	return findTextsPartsByUserID("texts.nominatives", userID, query, limit, offset, caseSensitive)
+	return findTextsPartsByUserID("texts.lemmas", userID, query, limit, offset, caseSensitive)
 }
 
 // findTextsPartsByUserID is the lower-level-true-SQL fundamental function to seacrh parts of texts
@@ -72,7 +72,8 @@ func findTextsPartsByUserID(
 		Joins("INNER JOIN source_texts on texts.id = source_texts.text_id").
 		Joins("INNER JOIN sources on sources.id = source_texts.source_id").
 		Joins("INNER JOIN user_sources on sources.id = user_sources.source_id").
-		Joins("INNER JOIN users on user_sources.user_id = users.id AND users.id = ?", userID).
+		Joins("INNER JOIN user_sources_enabled on user_sources.source_id = user_sources_enabled.source_id").
+		Joins("INNER JOIN users on user_sources_enabled.user_id = users.id AND users.id = ?", userID).
 		Where(sqlWhere, sqlMatch).
 		Limit(limit).
 		Offset(offset).

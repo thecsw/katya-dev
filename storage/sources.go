@@ -10,13 +10,14 @@ import (
 )
 
 // CreateSource creates a source for a user
-func CreateSource(user, link string) error {
+func CreateSource(user, link, label string) error {
 	userID, err := GetUser(user, false)
 	if err != nil {
 		return err
 	}
 	toAdd := &Source{
 		Link:     link,
+		Label:    label,
 		NumWords: 0,
 	}
 	source, err := GetSource(link, true)
@@ -41,6 +42,10 @@ func CreateSource(user, link string) error {
 		log.Error("Failed to append a source", err, log.Params{"user": user, "link": link})
 		return err
 	}
+
+	// Automatically enable the source
+	EnableSourceByID(userID.ID, toAdd.ID)
+
 	log.Format("Successfully created a new source", log.Params{"user": user, "link": link})
 	return nil
 }
@@ -55,7 +60,43 @@ func RemoveSource(user, link string) error {
 	if err != nil {
 		return err
 	}
-	return DB.Exec("DELETE FROM user_sources WHERE source_id = ? AND user_id = ?", source.ID, userID.ID).Error
+	return RemoveSourceByID(userID.ID, source.ID)
+}
+
+// RemoveSourceByID removes the user-link connection by ID
+func RemoveSourceByID(user, source uint) error {
+	return DB.Exec("DELETE FROM user_sources WHERE source_id = ? AND user_id = ?", source, user).Error
+}
+
+// EnableSource enables a given source for a user
+func EnableSource(user, link string) error {
+	userID, err := GetUser(user, false)
+	if err != nil {
+		return err
+	}
+	source, err := GetSource(link, true)
+	if err != nil {
+		return err
+	}
+	return EnableSourceByID(userID.ID, source.ID)
+}
+
+// EnableSourceByID enables a given source for a user by ID
+func EnableSourceByID(user, source uint) error {
+	return DB.Exec("INSERT into user_sources_enabled (source_id, user_id) values (?, ?)", source, user).Error
+}
+
+// DisableSource disables source for a user
+func DisableSource(user, link string) error {
+	userID, err := GetUser(user, false)
+	if err != nil {
+		return err
+	}
+	source, err := GetSource(link, true)
+	if err != nil {
+		return err
+	}
+	return DB.Exec("DELETE FROM user_sources_enabled WHERE source_id = ? AND user_id = ?", source.ID, userID.ID).Error
 }
 
 // GetSource returns the source object from database
@@ -85,6 +126,14 @@ func IsSource(name string) (bool, error) {
 	count := int64(0)
 	err := DB.First(&Source{}, "link = ?", name).Count(&count).Error
 	return count != 0, err
+}
+
+// UpdateSourceWordNum updates source's number of words
+func UpdateSourceLabel(url, label string) error {
+	return DB.Exec(
+		"UPDATE sources SET label = ? WHERE link = ?",
+		label, url).
+		Error
 }
 
 // UpdateSourceWordNum updates source's number of words

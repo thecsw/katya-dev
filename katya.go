@@ -17,6 +17,9 @@ import (
 )
 
 const (
+	// development environment keys
+	katyaDevEnvironment = true
+
 	// ListenAddress is the port number of our HTTP router
 	ListenAddress = ":32000"
 
@@ -51,9 +54,7 @@ const (
 )
 
 var (
-	katyaDevEnvironment = true
-
-	// default banner thing to say
+	// banner to show below the katya text banner
 	katyaBannerStrip = "Production Environment"
 
 	//go:embed data/template_spider.py
@@ -66,16 +67,12 @@ var (
 	)
 
 	// HTTP stuff for CORS pre-flight requests
-	allowedOrigins = []string{"https://sandyuraz.com", "https://katya-kappa.vercel.app"}
+	allowedOrigins = []string{"https://katya.sandyuraz.com", "https://katya-kappa.vercel.app"}
 	allowedMethods = []string{http.MethodPost, http.MethodGet, http.MethodDelete}
 	allowedHeaders = []string{"Authorization", "Content-Type", "Access-Control-Allow-Methods"}
 )
 
 func main() {
-	// +-------------------------------------+
-	// |                INIT                 |
-	// +-------------------------------------+
-
 	// Enable debug environment if the global flag is true
 	if katyaDevEnvironment {
 		dsn = "host=127.0.0.1 port=5432 user=sandy dbname=sandy"
@@ -104,10 +101,6 @@ func main() {
 
 	// Initialize our log instance
 	log.Init()
-
-	// +-------------------------------------+
-	// |              DATABASE               |
-	// +-------------------------------------+
 
 	// Initializing the database connection
 	log.Format("Initializing the database connection", log.Params{"DSN": dsn})
@@ -189,10 +182,6 @@ func main() {
 		// Create a default user
 		storage.CreateUser("sandy", "urazayev")
 	}
-
-	// +-------------------------------------+
-	// |              BLOCKING               |
-	// +-------------------------------------+
 
 	// Declare and define our HTTP handler
 	log.Info("Configuring the HTTP router")

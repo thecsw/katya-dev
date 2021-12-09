@@ -61,8 +61,20 @@ func IsUser(name string) (bool, error) {
 func GetUserSources(user string) ([]Source, error) {
 	sources := make([]Source, 0, 16)
 	err := DB.Model(sources).
-		Joins("JOIN user_sources on sources.id = user_sources.source_id").
-		Joins("JOIN users on user_sources.user_id = users.id AND users.name = ?", user).
+		Joins("INNER JOIN user_sources on sources.id = user_sources.source_id").
+		Joins("INNER JOIN users on user_sources.user_id = users.id AND users.name = ?", user).
+		Find(&sources).
+		Error
+	return sources, err
+}
+
+// GetUserSourcesEnabled returns user's sources associated with him that are enabled
+func GetUserSourcesEnabled(user string) ([]Source, error) {
+	sources := make([]Source, 0, 16)
+	err := DB.Model(sources).
+		Joins("INNER JOIN user_sources on sources.id = user_sources.source_id").
+		Joins("INNER JOIN user_sources_enabled on user_sources.source_id = user_sources_enabled.source_id").
+		Joins("INNER JOIN users on user_sources_enabled.user_id = users.id AND users.name = ?", user).
 		Find(&sources).
 		Error
 	return sources, err

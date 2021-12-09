@@ -45,14 +45,14 @@ type TextPayload struct {
 func textReceiver(w http.ResponseWriter, r *http.Request) {
 	scrapyLocalKey := r.Header.Get("Authorization")
 	if scrapyLocalKey != "cool_local_key" {
-		log.Error("Bad Authorization header", errors.New("bad key"), log.Params{})
+		log.Error("Bad Authorization header", errors.New("bad key"), nil)
 		return
 	}
 	payload := &TextPayload{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
 	if err != nil {
-		log.Error("Failed decoding a text payload", err, log.Params{})
+		log.Error("Failed decoding a text payload", err, nil)
 		return
 	}
 	thisParams := log.Params{
@@ -136,14 +136,14 @@ type StatusPayload struct {
 func statusReceiver(w http.ResponseWriter, r *http.Request) {
 	scrapyLocalKey := r.Header.Get("Authorization")
 	if scrapyLocalKey != "cool_local_key" {
-		log.Error("Bad Authorization header", errors.New("bad key"), log.Params{})
+		log.Error("Bad Authorization header", errors.New("bad key"), nil)
 		return
 	}
 	payload := &StatusPayload{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(payload)
 	if err != nil {
-		log.Error("Failed decoding a received status", err, log.Params{})
+		log.Error("Failed decoding a received status", err, nil)
 	}
 
 	switch payload.Status {
