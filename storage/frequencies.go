@@ -13,7 +13,7 @@ func FindTheMostFrequentWords(sourceURL string) (map[string]uint, error) {
 	if err != nil || source.ID == 0 {
 		return nil, errors.Wrap(err, "failed mapping source to ID")
 	}
-	texts, err := getSourcesTexts(source.ID)
+	texts, err := GetSourcesTexts(source.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't retrieve source texts")
 	}

@@ -18,7 +18,7 @@ from cleantext import clean
 import spacy
 
 # URL to submit processed strings
-URL_BASE = "https://127.0.0.1:32000"
+URL_BASE = "http://127.0.0.1:32000"
 URL_CLEAN = URL_BASE + "/text"
 URL_STATUS = URL_BASE + "/status"
 
@@ -29,8 +29,8 @@ s.verify = False
 # ---------- RUSSIAN SPACY -------------
 # Check here: https://spacy.io/models/ru
 # --------------------------------------
-# nlp_ru = spacy.load('ru_core_news_sm') # lightweight
-nlp_ru = spacy.load("ru_core_news_lg")  # heavylifter
+nlp_ru = spacy.load('ru_core_news_sm') # lightweight
+#nlp_ru = spacy.load("ru_core_news_lg")  # heavylifter
 
 
 def headers(spiderName):

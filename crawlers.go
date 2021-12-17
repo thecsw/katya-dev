@@ -164,8 +164,12 @@ func triggerCrawler(user, link string) (string, error) {
 	}
 	if !crawlerExists {
 		err := errors.New("this crawler needs to be allocated first")
-		log.Error("this crawler needs to be allocated first", err, thisParams)
-		return "", err
+		log.Error("this crawler needs to be allocated first, allocating", err, thisParams)
+		name, err = allocateCrawler(user, link, true)
+		if err != nil {
+			log.Error("failed hot allocating a crawler", err, thisParams)
+			return "", err
+		}
 	}
 	log.Format("Triggering a crawler", thisParams)
 

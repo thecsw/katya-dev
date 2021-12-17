@@ -34,8 +34,7 @@ func CreateSource(user, link, label string) error {
 			return err
 		}
 	}
-	err = DB.Exec("INSERT into user_sources (source_id, user_id) values (?, ?)", toAdd.ID, userID.ID).Error
-	if err != nil {
+	if err := AddSourceByID(userID.ID, source.ID); err != nil {
 		if strings.Contains(err.Error(), duplicateKeyViolatedError) {
 			err = errors.New("this source is already link to the user")
 		}
@@ -50,17 +49,47 @@ func CreateSource(user, link, label string) error {
 	return nil
 }
 
+func AddSource(user, link string) error {
+	userID, err := GetUser(user, false)
+	if err != nil {
+		return err
+	}
+	source, err := GetSource(link, false)
+	if err != nil {
+		return err
+	}
+	return AddSourceByID(userID.ID, source.ID)
+}
+
+func AddSourceByID(user, source uint) error {
+	return DB.Exec("INSERT into user_sources (source_id, user_id) values (?, ?)", source, user).Error
+}
+
 // RemoveSource removes the user-link connection
 func RemoveSource(user, link string) error {
 	userID, err := GetUser(user, false)
 	if err != nil {
 		return err
 	}
-	source, err := GetSource(link, true)
+	source, err := GetSource(link, false)
 	if err != nil {
 		return err
 	}
 	return RemoveSourceByID(userID.ID, source.ID)
+}
+
+// HardDeleteSource deletes the source completely
+func HardDeleteSource(link string) error {
+	source, err := GetSource(link, false)
+	if err != nil {
+		return err
+	}
+	err = DB.Delete(source).Error
+	if err != nil {
+		return err
+	}
+	log.Format("Successfully deleted a source", log.Params{"link": link})
+	return nil
 }
 
 // RemoveSourceByID removes the user-link connection by ID
@@ -152,8 +181,8 @@ func UpdateSourceSentNum(url string, numSentences uint) error {
 		Error
 }
 
-// getSourcesTexts returns all texts of a given source
-func getSourcesTexts(sourceID uint) ([]Text, error) {
+// GetSourcesTexts returns all texts of a given source
+func GetSourcesTexts(sourceID uint) ([]Text, error) {
 	texts := make([]Text, 0, 100)
 	err := DB.Model(texts).
 		Joins("INNER JOIN source_texts on texts.id = source_texts.text_id").
@@ -161,4 +190,26 @@ func getSourcesTexts(sourceID uint) ([]Text, error) {
 		Find(&texts).
 		Error
 	return texts, err
+}
+
+// GetSourcesUsers returns all users that have this source associated
+func GetSourcesUsers(sourceID uint) ([]User, error) {
+	users := make([]User, 10)
+	err := DB.Model(users).
+		Joins("INNER JOIN user_sources on users.id = user_sources.user_id").
+		Joins("INNER JOIN sources on sources.id = user_sources.source_id AND sources.id = ?", sourceID).
+		Find(&users).
+		Error
+	return users, err
+}
+
+// GetSourcesEnabledUsers returns users that have this source enabled
+func GetSourcesEnabledUsers(sourceID uint) ([]User, error) {
+	users := make([]User, 10)
+	err := DB.Model(users).
+		Joins("INNER JOIN user_sources_enabled on users.id = user_sources_enabled.user_id").
+		Joins("INNER JOIN sources on sources.id = user_sources_enabled.source_id AND sources.id = ?", sourceID).
+		Find(&users).
+		Error
+	return users, err
 }

@@ -44,7 +44,8 @@ type Source struct {
 
 	// JSON-specific exports
 	// Enabled flags if the source is enabled when exported
-	Enabled bool `gorm:"-" json:"enabled"`
+	Enabled  bool `gorm:"-" json:"enabled"`
+	Crawling bool `gorm:"-" json:"crawling"`
 }
 
 // Crawler struct defines the crawlers that we have, with the starting

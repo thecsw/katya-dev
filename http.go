@@ -61,12 +61,8 @@ func (p PairList) Len() int           { return len(p) }
 func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p PairList) Less(i, j int) bool { return p[i].Value > p[j].Value }
 
-func httpCSVFreqResults(w http.ResponseWriter, results map[string]uint, status int) {
-	w.Header().Set("Content-Type", "application/csv")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(status)
+func filterFrequencies(results map[string]uint) [][]string {
 	toWrite := make([][]string, 0, len(results)+1)
-	toWrite = append(toWrite, csvHeaders[csvHeaderForFrequencies])
 	p := make(PairList, 0, len(results))
 	i := 0
 	for k, v := range results {
@@ -83,6 +79,14 @@ func httpCSVFreqResults(w http.ResponseWriter, results map[string]uint, status i
 	for _, v := range p {
 		toWrite = append(toWrite, []string{v.Key, strconv.FormatUint(uint64(v.Value), 10)})
 	}
+	return toWrite
+}
+
+func httpCSVFreqResults(w http.ResponseWriter, results map[string]uint, status int) {
+	w.Header().Set("Content-Type", "application/csv")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(status)
+	toWrite := append([][]string{csvHeaders[csvHeaderForFrequencies]}, filterFrequencies(results)...)
 	_ = csv.NewWriter(w).WriteAll(toWrite)
 }
 
