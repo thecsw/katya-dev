@@ -80,7 +80,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		w.Header().Add("Set-Cookie",
-			fmt.Sprintf("user=Basic %s; Domain=katya.sandyuraz.com; Max-Age=2592000; Secure", tokens[1]),
+			fmt.Sprintf("user=\"Basic %s\"; Domain=katya.sandyuraz.com; Max-Age=2592000; Secure", tokens[1]),
 		)
 		newContext := context.WithValue(context.TODO(), ContextKey("user"), *foundUser)
 		next.ServeHTTP(w, r.WithContext(newContext))
