@@ -33,7 +33,7 @@ func CreateSource(user, link, label string) error {
 			return err
 		}
 	}
-	if err := AddSourceByID(userID.ID, source.ID); err != nil {
+	if err := AddSourceByID(userID.ID, toAdd.ID); err != nil {
 		if strings.Contains(err.Error(), duplicateKeyViolatedError) {
 			//err = errors.New("this source is already link to the user")
 		} else {
