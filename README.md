@@ -1,6 +1,5 @@
-```{=org}
-#+latex_compiler: xelatex
-```
+# Katya or The Liberated Corpus
+
 # Introduction
 
 The need for linguistic analysis has been increasing steadily over the
