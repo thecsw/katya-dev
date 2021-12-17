@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/patrickmn/go-cache"
@@ -36,10 +35,11 @@ func CreateSource(user, link, label string) error {
 	}
 	if err := AddSourceByID(userID.ID, source.ID); err != nil {
 		if strings.Contains(err.Error(), duplicateKeyViolatedError) {
-			err = errors.New("this source is already link to the user")
+			//err = errors.New("this source is already link to the user")
+		} else {
+			log.Error("Failed to append a source", err, log.Params{"user": user, "link": link})
+			return err
 		}
-		log.Error("Failed to append a source", err, log.Params{"user": user, "link": link})
-		return err
 	}
 
 	// Automatically enable the source
