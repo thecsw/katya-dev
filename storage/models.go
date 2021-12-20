@@ -17,6 +17,9 @@ type User struct {
 
 	// SourcesEnabled maps to sources that a user has, but only enabled ones
 	SourcesEnabled []*Source `gorm:"many2many:user_sources_enabled;" json:"-"`
+
+	// BasicToken holds the successful auth token for context purposes
+	BasicToken string `json:"-" gorm:"-"`
 }
 
 // Source struct defines a source website that is given by a user

@@ -78,16 +78,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			_, _ = badLoginAttempts.IncrementUint(ipAddr, 1)
 			return
 		}
-		userCookie := http.Cookie{
-			Name:     "user",
-			Value:    "Basic " + tokens[1],
-			Domain:   "katya-api.sandyuraz.com",
-			Expires:  time.Now().Add(72 * time.Hour),
-			MaxAge:   2592000,
-			Secure:   true,
-			HttpOnly: false,
-		}
-		http.SetCookie(w, &userCookie)
+		foundUser.BasicToken = string(r.Header.Get("Authorization"))
 		newContext := context.WithValue(context.TODO(), ContextKey("user"), *foundUser)
 		next.ServeHTTP(w, r.WithContext(newContext))
 	})
@@ -95,5 +86,16 @@ func loggingMiddleware(next http.Handler) http.Handler {
 
 // verifyAuth verifies that the credentials are OK
 func verifyAuth(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value(ContextKey("user")).(storage.User)
+	userCookie := http.Cookie{
+		Name:     "user",
+		Value:    user.BasicToken,
+		Domain:   "katya-api.sandyuraz.com",
+		Expires:  time.Now().Add(72 * time.Hour),
+		MaxAge:   2592000,
+		Secure:   true,
+		HttpOnly: false,
+	}
+	http.SetCookie(w, &userCookie)
 	httpJSON(w, httpMessageReturn{Message: "OK"}, http.StatusOK, nil)
 }
