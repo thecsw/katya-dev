@@ -88,13 +88,13 @@ func loggingMiddleware(next http.Handler) http.Handler {
 func verifyAuth(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(ContextKey("user")).(storage.User)
 	userCookie := http.Cookie{
-		Name:  "user",
-		Value: user.BasicToken,
-		//Domain:   "katya-api.sandyuraz.com",
-		Expires:  time.Now().Add(72 * time.Hour),
-		MaxAge:   2592000,
+		Name:     "user",
+		Path:     "/",
+		Value:    user.BasicToken,
+		Domain:   "sandyuraz.com",
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
 		Secure:   true,
-		HttpOnly: false,
+		HttpOnly: true,
 	}
 	http.SetCookie(w, &userCookie)
 	httpJSON(w, httpMessageReturn{Message: "OK"}, http.StatusOK, nil)
