@@ -20,8 +20,13 @@ var (
 	csvHeaders = map[string][]string{
 		csvHeaderForFind: {
 			"reverse left", "reverse center",
-			"left", "center", "right", "source", "title"},
-		csvHeaderForFrequencies: {"lemma", "hits"},
+			"left", "center", "right", "source",
+			"title", "scraped",
+		},
+
+		csvHeaderForFrequencies: {
+			"lemma", "hits",
+		},
 	}
 )
 
@@ -44,7 +49,7 @@ func httpCSVFindResults(w http.ResponseWriter, results []SearchResult, status in
 	toWrite = append(toWrite, csvHeaders[csvHeaderForFind])
 	for _, v := range results {
 		toWrite = append(toWrite, []string{
-			v.LeftReverse, v.CenterReverse, v.Left, v.Center, v.Right, v.Source, v.Title,
+			v.LeftReverse, v.CenterReverse, v.Left, v.Center, v.Right, v.Source, v.Title, v.Scraped,
 		})
 	}
 	_ = csv.NewWriter(w).WriteAll(toWrite)

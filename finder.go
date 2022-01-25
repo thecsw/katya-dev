@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -36,6 +37,8 @@ type SearchResult struct {
 	Source string `json:"source"`
 	// Title is the extract title of the source link
 	Title string `json:"title"`
+	// Scraped stores the date of when the page was scraped
+	Scraped string `json:"scraped"`
 }
 
 // findQueryInTexts takes /api/find query and returns a SearchResult slice
@@ -178,6 +181,7 @@ func findQueryInTexts(w http.ResponseWriter, r *http.Request) {
 				Right:         rightText,
 				Source:        v.URL,
 				Title:         v.Title,
+				Scraped:       v.CreatedAt.Format(time.RFC850),
 			}
 
 			// Append it to the final results
