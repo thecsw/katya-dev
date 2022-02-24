@@ -45,6 +45,9 @@ type Source struct {
 	// UsersEnabled maps to sources that a user has, but only enabled ones
 	UsersEnabled []*User `gorm:"many2many:user_sources_enabled;" json:"-"`
 
+	// Cleaned shows whether the source has been cleaned of spam
+	Cleaned bool `json:"cleaned"`
+
 	// JSON-specific exports
 	// Enabled flags if the source is enabled when exported
 	Enabled  bool `gorm:"-" json:"enabled"`

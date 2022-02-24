@@ -78,6 +78,11 @@ func RemoveSource(user, link string) error {
 	return RemoveSourceByID(userID.ID, source.ID)
 }
 
+// UpdateSource updates a source
+func UpdateSource(source *Source) error {
+	return DB.Save(source).Error
+}
+
 // HardDeleteSource deletes the source completely
 func HardDeleteSource(link string) error {
 	source, err := GetSource(link, false)

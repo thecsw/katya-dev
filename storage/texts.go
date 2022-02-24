@@ -122,30 +122,7 @@ func TextConnectSource(sourceID, textID uint) error {
 	return DB.Exec("INSERT into source_texts (source_id, text_id) values (?, ?)", sourceID, textID).Error
 }
 
-// findTexts is a general matcher that takes a username and runs it
-// func findTexts(
-// 	user string,
-// 	query string,
-// 	limit int,
-// 	offset int,
-// 	caseSensitive bool,
-// ) ([]Text, error) {
-// 	texts := make([]Text, 0, limit)
-// 	sqlWhere := "texts.text LIKE ?"
-// 	sqlMatch := "%" + query + "%"
-// 	if !caseSensitive {
-// 		sqlWhere = "lower(texts.text) LIKE ?"
-// 		sqlMatch = "%" + strings.ToLower(query) + "%"
-// 	}
-// 	err := DB.Model(texts).
-// 		Joins("JOIN source_texts on texts.id = source_texts.text_id").
-// 		Joins("JOIN sources on sources.id = source_texts.source_id").
-// 		Joins("JOIN user_sources on sources.id = user_sources.source_id").
-// 		Joins("JOIN users on user_sources.user_id = users.id AND users.name = ?", user).
-// 		Where(sqlWhere, sqlMatch).
-// 		Limit(limit).
-// 		Offset(offset).
-// 		Find(&texts).
-// 		Error
-// 	return texts, err
-// }
+// UpdateText updates the text
+func UpdateText(text *Text) error {
+	return DB.Save(text).Error
+}

@@ -12,6 +12,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/pterm/pterm"
 	"github.com/rs/cors"
+	"github.com/thecsw/katya/analysis"
 	"github.com/thecsw/katya/log"
 	"github.com/thecsw/katya/storage"
 )
@@ -148,7 +149,7 @@ func main() {
 
 	// Loading stopwords
 	log.Info("Loading stopwords")
-	loadStopwords()
+	analysis.LoadStopwords()
 
 	// +-------------------------------------+
 	// |             HTTP Router             |
@@ -172,6 +173,8 @@ func main() {
 	subRouter.HandleFunc("/source", userCreateSource).Methods(http.MethodPost)
 	subRouter.HandleFunc("/source", userDeleteSource).Methods(http.MethodDelete)
 	subRouter.HandleFunc("/frequencies", frequencyFinder).Methods(http.MethodGet)
+	subRouter.HandleFunc("/relations", findRelations).Methods(http.MethodGet)
+	subRouter.HandleFunc("/clean", cleanTexts).Methods(http.MethodGet)
 	subRouter.HandleFunc("/status", crawlerStatusReceiver).Methods(http.MethodGet)
 
 	log.Info("Enabled the auth portal for the API router")
