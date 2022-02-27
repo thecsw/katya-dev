@@ -42,22 +42,22 @@ type LCSIM_struct struct {
 	Len   int
 }
 
-var (
-	LCSIM_lru map[int]map[int]LCSIM_struct
-)
+type LCSIM_cache map[int]map[int]LCSIM_struct
 
 func LCSIM(X []string, Y []string) LCSIM_struct {
-	LCSIM_lru = make(map[int]map[int]LCSIM_struct)
+	LCSIM_lru := make(LCSIM_cache)
 	for i := 0; i <= len(X); i++ {
 		LCSIM_lru[i] = make(map[int]LCSIM_struct)
 	}
-	ret := LCSIM_r(X, Y, len(X), len(Y))
+	ret := LCSIM_r(X, Y, len(X), len(Y), LCSIM_lru)
 	// Clear the LRU cache
 	LCSIM_lru = nil
 	return ret
 }
 
-func LCSIM_r(X []string, Y []string, l, k int) LCSIM_struct {
+func LCSIM_r(
+	X []string, Y []string, l, k int,
+	cache LCSIM_cache) LCSIM_struct {
 	if l == 0 || k == 0 {
 		return LCSIM_struct{
 			Left:  []int{},
@@ -65,25 +65,25 @@ func LCSIM_r(X []string, Y []string, l, k int) LCSIM_struct {
 			Len:   0,
 		}
 	}
-	if v, ok := LCSIM_lru[l][k]; ok {
+	if v, ok := cache[l][k]; ok {
 		return v
 	}
 	if X[l-1] == Y[k-1] {
-		st := LCSIM_r(X, Y, l-1, k-1)
+		st := LCSIM_r(X, Y, l-1, k-1, cache)
 		toSave := LCSIM_struct{
 			Left:  append(st.Left, l-1),
 			Right: append(st.Right, k-1),
 			Len:   st.Len + 1,
 		}
-		LCSIM_lru[l][k] = toSave
+		cache[l][k] = toSave
 		return toSave
 	}
-	st1 := LCSIM_r(X, Y, l-1, k)
-	st2 := LCSIM_r(X, Y, l, k-1)
+	st1 := LCSIM_r(X, Y, l-1, k, cache)
+	st2 := LCSIM_r(X, Y, l, k-1, cache)
 	if st1.Len >= st2.Len {
-		LCSIM_lru[l][k] = st1
+		cache[l][k] = st1
 		return st1
 	}
-	LCSIM_lru[l][k] = st2
+	cache[l][k] = st2
 	return st2
 }

@@ -184,15 +184,29 @@ It is an interesting observation that excluding all the names, the top
 words stand for \"brother\", \"money\", \"God\", and \"to kill\".
 Funnily enough, this list succinctly summarizes the work as well.
 
+Implemented in `./analysis/word_frequency.go`
+
+# Word relations
+
+This feature allows us to analyze how a specific word can relate to
+its meaning within a given context. Given a word, simply find most
+occuring words that are some interval N words away. Implemented in
+`./analysis/word_relations.go`
+
 # Further development
 
 First version of Katya has been released and is available at
 [katya.sandyuraz.com](https://katya.sandyuraz.com). Thanks to the design
 of Katya, it is easily extensible, such that we can add additional
-modules at no cost. One of big improvements that will follow is advanced
+modules at no cost. 
+
+One of big improvements that will follow is advanced
 text cleanup. During scraping, our parsers might extract noisy contents,
 such as website\'s headers, footers, menus, etc. Advanced algorithms,
 such as [Longest Common
 Subsequence](https://en.wikipedia.org/wiki/Longest_common_subsequence_problem)
+
+**NOTE**: This has been implemented in `./analysis/clean_repetetive.go`
+
 can help us to remove duplicated text from scraped texts. One other big
 feature missing is the ability to create accounts.

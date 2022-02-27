@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"unicode"
 
 	"github.com/thecsw/katya/storage"
@@ -20,32 +21,42 @@ func CleanTexts(texts []storage.Text) ([]storage.Text, int, error) {
 	firstText := strings.Split(texts[0].Text, " ")
 	stt := LCSIM(firstText, strings.Split(texts[1].Text, " "))
 
+	textsLock := sync.Mutex{}
+	wg := &sync.WaitGroup{}
 	for i := 1; i < len(texts); i++ {
-		fmt.Printf("[CLEAN] [%d/%d] Processing %s", i, len(texts)-1, texts[i].URL)
-		text := strings.Split(texts[i].Text, " ")
-		shapes := strings.Split(texts[i].Shapes, " ")
-		tags := strings.Split(texts[i].Tags, " ")
-		lemmas := strings.Split(texts[i].Lemmas, " ")
+		wg.Add(1)
+		go func(i int) {
+			textsLock.Lock()
+			text := strings.Split(texts[i].Text, " ")
+			shapes := strings.Split(texts[i].Shapes, " ")
+			tags := strings.Split(texts[i].Tags, " ")
+			lemmas := strings.Split(texts[i].Lemmas, " ")
+			textsLock.Unlock()
+			st := LCSIM(firstText, text)
 
-		st := LCSIM(firstText, text)
+			textNew, deleted := removeIndices(text, st.Right)
+			shapesNew, _ := removeIndices(shapes, st.Right)
+			tagsNew, _ := removeIndices(tags, st.Right)
+			lemmasNew, _ := removeIndices(lemmas, st.Right)
 
-		textNew, deleted := removeIndices(text, st.Right)
-		shapesNew, _ := removeIndices(shapes, st.Right)
-		tagsNew, _ := removeIndices(tags, st.Right)
-		lemmasNew, _ := removeIndices(lemmas, st.Right)
+			textsLock.Lock()
+			texts[i].Text = strings.Join(textNew, " ")
+			texts[i].Shapes = strings.Join(shapesNew, " ")
+			texts[i].Tags = strings.Join(tagsNew, " ")
+			texts[i].Lemmas = strings.Join(lemmasNew, " ")
+			texts[i].NumWords -= uint(deleted)
+			textsLock.Unlock()
 
-		texts[i].Text = strings.Join(textNew, " ")
-		texts[i].Shapes = strings.Join(shapesNew, " ")
-		texts[i].Tags = strings.Join(tagsNew, " ")
-		texts[i].Lemmas = strings.Join(lemmasNew, " ")
-		texts[i].NumWords -= uint(deleted)
+			totalDeleted += deleted
 
-		totalDeleted += deleted
-
-		fmt.Printf(" [DELETED %d]", deleted)
-
-		fmt.Printf(" Done!\n")
+			//fmt.Printf(" [DELETED %d]", deleted)
+			fmt.Printf("[CLEAN] [%d/%d] Processed %s, deleted %d", i,
+				len(texts)-1, texts[i].URL, deleted)
+			wg.Done()
+		}(i)
+		//fmt.Printf(" Done!\n")
 	}
+	wg.Wait()
 	// Update the final pivot text
 	fmt.Println("Finally updating the pivot")
 	textNew, deleted := removeIndices(strings.Split(texts[0].Text, " "), stt.Right)
