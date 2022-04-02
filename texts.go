@@ -60,21 +60,24 @@ func textReceiver(w http.ResponseWriter, r *http.Request) {
 		"url":     payload.URL,
 		"source":  payload.StartURL,
 	}
-	// Check if such a crawler exists
-	crawlerExists, err := storage.IsCrawler(payload.Name)
-	if err != nil {
-		log.Error("Failed checking crawler's existence", err, log.Params{
-			"crawler": payload.Name,
-		})
-	}
-	if !crawlerExists {
-		httpJSON(
-			w,
-			nil,
-			http.StatusForbidden,
-			errors.New("this crawler doesn't exist"),
-		)
-		return
+	// If it is a local upload, no need for a crawler
+	if payload.Name != "LOCAL_UPLOAD" {
+		// Check if such a crawler exists
+		crawlerExists, err := storage.IsCrawler(payload.Name)
+		if err != nil {
+			log.Error("Failed checking crawler's existence", err, log.Params{
+				"crawler": payload.Name,
+			})
+		}
+		if !crawlerExists {
+			httpJSON(
+				w,
+				nil,
+				http.StatusForbidden,
+				errors.New("this crawler doesn't exist"),
+			)
+			return
+		}
 	}
 
 	// Try to add the texts to the database

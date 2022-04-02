@@ -1,36 +1,20 @@
-# Define your item pipelines here
-#
-# Don't forget to add your pipeline to the ITEM_PIPELINES setting
-# See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-
-# useful for handling different item types with a single interface
 import json
 import requests
 from typing import List
 
 from itemadapter import ItemAdapter
 from bs4 import BeautifulSoup
-from cleantext import clean
-
-# from icecream import ic
-# import langdetect
-# import nltk
-import spacy
 
 # URL to submit processed strings
 URL_BASE = "http://127.0.0.1:32000"
 URL_CLEAN = URL_BASE + "/text"
 URL_STATUS = URL_BASE + "/status"
 
+YAGAMI_URL = "http://127.0.0.1:32393/process"
+
 # Session for requests
 s = requests.session()
 s.verify = False
-
-# ---------- RUSSIAN SPACY -------------
-# Check here: https://spacy.io/models/ru
-# --------------------------------------
-nlp_ru = spacy.load('ru_core_news_sm') # lightweight
-#nlp_ru = spacy.load("ru_core_news_lg")  # heavylifter
 
 
 def headers(spiderName):
@@ -78,7 +62,7 @@ class ScrapyPipeline:
                         "status": "finished",
                         "name": spider.name,
                     }
-                ),
+                ).encode("utf-8"),
                 headers=headers(spider.name),
             )
         except Exception as e:
@@ -94,46 +78,28 @@ class ScrapyPipeline:
         TODO: Possibly in the future, it would need to do some automated lexical tagging.
         """
         text = ItemAdapter(item).get("text")
-        clean_text = clean_raw_html(str(text))
+        # clean_text = clean_raw_html(str(text))
+        clean_text = " ".join(extract_text(text))
 
-        doc = nlp_ru(clean_text)
-
-        # word_tokens = nltk.word_tokenize(clean_text, language="russian")
-        # num_words = len(word_tokens)
-
-        # sent_tokens = nltk.sent_tokenize(clean_text, language="russian")
-        # num_sentences = len(sent_tokens)
-
-        num_sentences = len([sent for sent in doc.sents])
-        num_words = len([True for token in doc if token.is_alpha])
-
-        shapes = " ".join(([token.shape_ for token in doc]))
-        tags = " ".join(([token.tag_ for token in doc]))
-        lemmas = " ".join(([token.lemma_ for token in doc]))
-        to_send_text = " ".join(([token.text for token in doc]))
-
-        to_return = {
-            "original": clean_text,
-            "text": to_send_text,
-            "shapes": shapes,
-            "tags": tags,
-            "lemmas": lemmas,
-            "title": ItemAdapter(item).get("title"),
-            "ip": ItemAdapter(item).get("ip"),
-            "url": ItemAdapter(item).get("url"),
-            "status": ItemAdapter(item).get("status"),
-            "start": spider.start_url,
-            "name": spider.name,
-            "num_words": num_words,
-            "num_sentences": num_sentences,
-        }
-
-        final_json = json.dumps(to_return, ensure_ascii=False, sort_keys=True)
-        # self.file.write(final_json)
-
+        # Send the text to yagami for processing. Yagami will submit it later
         try:
+            print("SENDING TO YAGAMI", ItemAdapter(item).get("title"))
             s.post(
-                URL_CLEAN, data=final_json.encode("utf-8"), headers=headers(spider.name)
+                YAGAMI_URL,
+                data=json.dumps(
+                    {
+                        "title": ItemAdapter(item).get("title"),
+                        "ip": ItemAdapter(item).get("ip"),
+                        "url": ItemAdapter(item).get("url"),
+                        "start": spider.start_url,
+                        "status": ItemAdapter(item).get("status"),
+                        "crawler": spider.name,
+                        "text": clean_text,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                ).encode("utf-8"),
+                headers=headers(spider.name),
             )
         except Exception as e:
             print("Failed to send a text payload:", e)
@@ -208,45 +174,3 @@ def extract_text(html_page: str) -> List[str]:
         to_return.append(str(element))
 
     return to_return
-
-
-def clean_text(dirty_text: str) -> str:
-    """
-    Cleans up the text from annoying newlines, tabs, whitespaces, and
-    extra glyphs.
-    """
-    # Some hardcoded strings to remove
-    for to_remove in TO_REMOVE:
-        dirty_text = dirty_text.replace(to_remove, "")
-    # Use the text cleaner to remove scary stuff
-    return clean(
-        dirty_text,
-        fix_unicode=True,
-        to_ascii=False,
-        lower=False,
-        no_line_breaks=True,
-        no_urls=True,
-        no_emails=True,
-        no_phone_numbers=True,
-        no_numbers=False,
-        no_digits=False,
-        no_currency_symbols=False,
-        no_punct=False,
-        no_emoji=False,
-        replace_with_punct="",
-        replace_with_url="<URL>",
-        replace_with_email="<EMAIL>",
-        replace_with_phone_number="<PHONE>",
-        replace_with_number="<NUMBER>",
-        replace_with_digit="0",
-        replace_with_currency_symbol="<CUR>",
-        lang="en",
-    )
-
-
-def clean_raw_html(raw_html: str) -> str:
-    """
-    Automatically cleans a raw html file to extract pure text.
-    """
-    text = extract_text(raw_html)
-    return clean_text(" ".join(text))

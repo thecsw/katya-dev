@@ -49,7 +49,6 @@ func CreateText(
 			Title:        title,
 			NumWords:     numWords,
 			NumSentences: numSentences,
-			Sources:      []*Source{},
 		}
 		err = DB.Create(toAdd).Error
 		if err != nil {

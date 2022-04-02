@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"time"
 
@@ -186,6 +187,18 @@ func main() {
 		storage.CreateUser("sandy", "urazayev")
 	}
 
+	// Start the yagami processing service
+	log.Info("Starting the yagami service")
+	quotesCmd := exec.Command("python3", "yagami.py")
+	quotesCmd.Stdout = os.Stdout
+	go func() {
+		err := quotesCmd.Run()
+		if err != nil {
+			panic(err)
+		}
+	}()
+	time.Sleep(2 * time.Second)
+
 	// Declare and define our HTTP handler
 	log.Info("Configuring the HTTP router")
 	corsOptions := cors.New(cors.Options{
@@ -230,4 +243,6 @@ func main() {
 	log.Info("Flushing last delta updates")
 	updateGlobalWordSentencesDeltas()
 	updateSourcesWordSentencesDeltas()
+	log.Info("Killing Yagami")
+	quotesCmd.Process.Kill()
 }
