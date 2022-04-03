@@ -60,7 +60,7 @@ func httpCSVFreqResults(w http.ResponseWriter, results map[string]uint, status i
 	w.WriteHeader(status)
 	toWrite := append(
 		[][]string{csvHeaders[csvHeaderForFrequencies]},
-		analysis.FilterStopwords(results, analysis.StopwordsRU)...,
+		analysis.FilterStopwordsSimple(results, analysis.StopwordsRU)...,
 	)
 	_ = csv.NewWriter(w).WriteAll(toWrite)
 }

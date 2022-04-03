@@ -25,5 +25,5 @@ func frequencyFinder(w http.ResponseWriter, r *http.Request) {
 		httpCSVFreqResults(w, result, http.StatusOK)
 		return
 	}
-	httpJSON(w, analysis.FilterStopwords(result, analysis.StopwordsRU), http.StatusOK, nil)
+	httpJSON(w, analysis.FilterStopwordsSimple(result, analysis.StopwordsRU), http.StatusOK, nil)
 }

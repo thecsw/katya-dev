@@ -80,7 +80,7 @@ func main() {
 		dsn = "host=127.0.0.1 port=5432 user=sandy dbname=sandy"
 		katyaBannerStrip = "Development Environment"
 
-		allowedOrigins = append(allowedOrigins, "http://localhost:5000")
+		allowedOrigins = append(allowedOrigins, "http://localhost:8080")
 	}
 
 	// Print the big banner
